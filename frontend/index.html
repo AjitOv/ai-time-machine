@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="AI Time Machine – A self-evolving intelligence system that models market behavior and reveals probable futures.">
+    <title>AI Time Machine | Adaptive Behavioral Market Intelligence</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <!-- TradingView Lightweight Charts -->
+    <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <!-- ═══════════════ HEADER ═══════════════ -->
+    <header id="app-header">
+        <div class="header-left">
+            <div class="logo">
+                <div class="logo-icon">
+                    <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+                        <circle cx="14" cy="14" r="12" stroke="url(#grad1)" stroke-width="2"/>
+                        <circle cx="14" cy="14" r="6" fill="url(#grad1)" opacity="0.3"/>
+                        <circle cx="14" cy="14" r="3" fill="url(#grad1)"/>
+                        <line x1="14" y1="2" x2="14" y2="8" stroke="url(#grad1)" stroke-width="1.5"/>
+                        <line x1="14" y1="20" x2="14" y2="26" stroke="url(#grad1)" stroke-width="1.5"/>
+                        <line x1="2" y1="14" x2="8" y2="14" stroke="url(#grad1)" stroke-width="1.5"/>
+                        <line x1="20" y1="14" x2="26" y2="14" stroke="url(#grad1)" stroke-width="1.5"/>
+                        <defs>
+                            <linearGradient id="grad1" x1="0" y1="0" x2="28" y2="28">
+                                <stop offset="0%" stop-color="#00d4ff"/>
+                                <stop offset="100%" stop-color="#00ff88"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+                <div class="logo-text">
+                    <h1>AI Time Machine</h1>
+                    <span class="subtitle">Adaptive Behavioral Market Intelligence</span>
+                </div>
+            </div>
+        </div>
+        <div class="header-center">
+            <div class="symbol-selector">
+                <select id="symbol-select">
+                    <option value="SPY">SPY</option>
+                    <option value="QQQ">QQQ</option>
+                    <option value="AAPL">AAPL</option>
+                    <option value="MSFT">MSFT</option>
+                    <option value="TSLA">TSLA</option>
+                    <option value="BTC-USD">BTC-USD</option>
+                    <option value="^NSEI">NIFTY 50</option>
+                </select>
+            </div>
+            <div class="timeframe-selector">
+                <button class="tf-btn" data-tf="5m">5m</button>
+                <button class="tf-btn active" data-tf="1h">1H</button>
+                <button class="tf-btn" data-tf="4h">4H</button>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="system-status" id="system-status">
+                <div class="status-dot pulse"></div>
+                <span>ONLINE</span>
+            </div>
+            <button class="btn-analyze" id="btn-run-analysis" title="Run Full Analysis">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <polygon points="3,1 14,8 3,15" fill="currentColor"/>
+                </svg>
+                ANALYZE
+            </button>
+        </div>
+    </header>
+
+    <!-- ═══════════════ MAIN DASHBOARD ═══════════════ -->
+    <main id="dashboard">
+
+        <!-- ROW 1: Decision + Chart -->
+        <section class="dashboard-row row-1">
+
+            <!-- DECISION PANEL -->
+            <div class="panel decision-panel" id="panel-decision">
+                <div class="panel-header">
+                    <h2>Decision</h2>
+                    <div class="badge" id="decision-badge">AWAITING</div>
+                </div>
+                <div class="panel-body">
+                    <div class="decision-direction" id="decision-direction">
+                        <span class="direction-label">—</span>
+                    </div>
+                    <div class="confidence-gauge" id="confidence-gauge">
+                        <svg viewBox="0 0 120 70" class="gauge-svg">
+                            <path d="M 10 65 A 50 50 0 0 1 110 65" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="8" stroke-linecap="round"/>
+                            <path d="M 10 65 A 50 50 0 0 1 110 65" fill="none" stroke="url(#gaugeGrad)" stroke-width="8" stroke-linecap="round" id="gauge-fill" stroke-dasharray="0 157"/>
+                            <defs>
+                                <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" stop-color="#ff4444"/>
+                                    <stop offset="50%" stop-color="#ffaa00"/>
+                                    <stop offset="100%" stop-color="#00ff88"/>
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                        <div class="gauge-value" id="gauge-value">0%</div>
+                        <div class="gauge-label">Confidence</div>
+                    </div>
+                    <div class="trade-levels">
+                        <div class="level-row">
+                            <span class="level-label">Entry</span>
+                            <span class="level-value" id="level-entry">—</span>
+                        </div>
+                        <div class="level-row sl">
+                            <span class="level-label">Stop Loss</span>
+                            <span class="level-value" id="level-sl">—</span>
+                        </div>
+                        <div class="level-row tp">
+                            <span class="level-label">Take Profit</span>
+                            <span class="level-value" id="level-tp">—</span>
+                        </div>
+                        <div class="level-row rr">
+                            <span class="level-label">Risk:Reward</span>
+                            <span class="level-value" id="level-rr">—</span>
+                        </div>
+                    </div>
+                    <div class="decision-reasons" id="decision-reasons"></div>
+                </div>
+            </div>
+
+            <!-- CHART PANEL -->
+            <div class="panel chart-panel" id="panel-chart">
+                <div class="panel-header">
+                    <h2>Live Chart</h2>
+                    <div class="price-display">
+                        <span class="current-price" id="current-price">—</span>
+                        <span class="price-change" id="price-change"></span>
+                    </div>
+                </div>
+                <div class="panel-body">
+                    <div id="chart-container"></div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- ROW 2: Context + Scenarios + DNA -->
+        <section class="dashboard-row row-2">
+
+            <!-- CONTEXT PANEL -->
+            <div class="panel context-panel" id="panel-context">
+                <div class="panel-header">
+                    <h2>Market Context</h2>
+                    <div class="context-score-badge" id="ctx-score-badge">0.00</div>
+                </div>
+                <div class="panel-body">
+                    <div class="context-grid">
+                        <div class="ctx-item">
+                            <span class="ctx-label">Phase</span>
+                            <span class="ctx-value" id="ctx-phase">—</span>
+                        </div>
+                        <div class="ctx-item">
+                            <span class="ctx-label">Regime</span>
+                            <span class="ctx-value" id="ctx-regime">—</span>
+                        </div>
+                        <div class="ctx-item">
+                            <span class="ctx-label">HTF Bias</span>
+                            <span class="ctx-value" id="ctx-htf">—</span>
+                        </div>
+                        <div class="ctx-item">
+                            <span class="ctx-label">Zone</span>
+                            <span class="ctx-value" id="ctx-zone">—</span>
+                        </div>
+                        <div class="ctx-item">
+                            <span class="ctx-label">Equilibrium</span>
+                            <span class="ctx-value" id="ctx-eq">—</span>
+                        </div>
+                        <div class="ctx-item">
+                            <span class="ctx-label">Permission</span>
+                            <span class="ctx-value" id="ctx-perm">—</span>
+                        </div>
+                    </div>
+                    <div class="behavior-section">
+                        <h3>Behavioral Patterns</h3>
+                        <div class="patterns-list" id="patterns-list">
+                            <span class="no-data">Run analysis to detect patterns</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SCENARIOS PANEL -->
+            <div class="panel scenarios-panel" id="panel-scenarios">
+                <div class="panel-header">
+                    <h2>Future Scenarios</h2>
+                    <div class="badge" id="dominant-badge">—</div>
+                </div>
+                <div class="panel-body">
+                    <div class="scenario-cards" id="scenario-cards">
+                        <div class="scenario-card bullish">
+                            <div class="scenario-header">
+                                <span class="scenario-icon">▲</span>
+                                <span class="scenario-label">Bullish</span>
+                            </div>
+                            <div class="scenario-prob" id="prob-bullish">—</div>
+                            <div class="prob-bar"><div class="prob-fill bullish" id="bar-bullish"></div></div>
+                            <div class="scenario-target" id="target-bullish">—</div>
+                        </div>
+                        <div class="scenario-card bearish">
+                            <div class="scenario-header">
+                                <span class="scenario-icon">▼</span>
+                                <span class="scenario-label">Bearish</span>
+                            </div>
+                            <div class="scenario-prob" id="prob-bearish">—</div>
+                            <div class="prob-bar"><div class="prob-fill bearish" id="bar-bearish"></div></div>
+                            <div class="scenario-target" id="target-bearish">—</div>
+                        </div>
+                        <div class="scenario-card neutral">
+                            <div class="scenario-header">
+                                <span class="scenario-icon">◆</span>
+                                <span class="scenario-label">Neutral</span>
+                            </div>
+                            <div class="scenario-prob" id="prob-neutral">—</div>
+                            <div class="prob-bar"><div class="prob-fill neutral" id="bar-neutral"></div></div>
+                            <div class="scenario-target" id="target-neutral">—</div>
+                        </div>
+                    </div>
+                    <div class="simulation-stats">
+                        <div class="stat-row">
+                            <span>Mean Price</span>
+                            <span id="sim-mean">—</span>
+                        </div>
+                        <div class="stat-row">
+                            <span>5th–95th Range</span>
+                            <span id="sim-range">—</span>
+                        </div>
+                        <div class="stat-row">
+                            <span>Simulation Bias</span>
+                            <span id="sim-bias">—</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DNA PANEL -->
+            <div class="panel dna-panel" id="panel-dna">
+                <div class="panel-header">
+                    <h2>Setup DNA</h2>
+                    <div class="dna-confidence-badge" id="dna-conf-badge">0.00</div>
+                </div>
+                <div class="panel-body">
+                    <div class="dna-match" id="dna-match">
+                        <div class="dna-empty">
+                            <svg width="40" height="40" viewBox="0 0 40 40" fill="none" opacity="0.3">
+                                <path d="M20 5 L20 35 M12 10 Q20 15 28 10 M12 20 Q20 25 28 20 M12 30 Q20 35 28 30" stroke="currentColor" stroke-width="2"/>
+                            </svg>
+                            <span>No DNA matches yet</span>
+                        </div>
+                    </div>
+                    <div class="uncertainty-section">
+                        <h3>Uncertainty</h3>
+                        <div class="uncertainty-meter">
+                            <div class="unc-bar"><div class="unc-fill" id="unc-fill"></div></div>
+                            <span class="unc-value" id="unc-value">—</span>
+                        </div>
+                        <div class="unc-signals" id="unc-signals"></div>
+                    </div>
+                    <div class="meta-section">
+                        <h3>System Health</h3>
+                        <div class="meta-status" id="meta-status">
+                            <span class="meta-dot"></span>
+                            <span>—</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- ROW 3: Performance + Trade History -->
+        <section class="dashboard-row row-3">
+
+            <!-- PERFORMANCE PANEL -->
+            <div class="panel performance-panel" id="panel-performance">
+                <div class="panel-header">
+                    <h2>Performance</h2>
+                </div>
+                <div class="panel-body">
+                    <div class="perf-stats">
+                        <div class="perf-stat">
+                            <span class="perf-value" id="perf-total">0</span>
+                            <span class="perf-label">Trades</span>
+                        </div>
+                        <div class="perf-stat">
+                            <span class="perf-value" id="perf-winrate">0%</span>
+                            <span class="perf-label">Win Rate</span>
+                        </div>
+                        <div class="perf-stat">
+                            <span class="perf-value" id="perf-pnl">$0</span>
+                            <span class="perf-label">Total PnL</span>
+                        </div>
+                        <div class="perf-stat">
+                            <span class="perf-value" id="perf-rr">0</span>
+                            <span class="perf-label">Avg R:R</span>
+                        </div>
+                    </div>
+                    <div class="weights-section">
+                        <h3>Engine Weights</h3>
+                        <div class="weights-bars" id="weights-bars"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TRADE HISTORY -->
+            <div class="panel history-panel" id="panel-history">
+                <div class="panel-header">
+                    <h2>Trade History</h2>
+                    <span class="trade-count" id="trade-count">0 trades</span>
+                </div>
+                <div class="panel-body">
+                    <div class="trades-table-wrap">
+                        <table class="trades-table" id="trades-table">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Direction</th>
+                                    <th>Entry</th>
+                                    <th>SL</th>
+                                    <th>TP</th>
+                                    <th>Conf.</th>
+                                    <th>Outcome</th>
+                                </tr>
+                            </thead>
+                            <tbody id="trades-tbody">
+                                <tr><td colspan="7" class="no-data">No trades recorded yet</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- ═══════════════ FOOTER ═══════════════ -->
+    <footer id="app-footer">
+        <span>AI Time Machine v1.0 — <em>"Revealing probable futures, never certainties"</em></span>
+        <span class="footer-time" id="footer-time"></span>
+    </footer>
+
+    <!-- ═══════════════ LOADING OVERLAY ═══════════════ -->
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="loader">
+            <div class="loader-ring"></div>
+            <div class="loader-ring"></div>
+            <div class="loader-ring"></div>
+            <span class="loader-text">Analyzing futures...</span>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/api.js"></script>
+    <script src="js/chart.js"></script>
+    <script src="js/components.js"></script>
+    <script src="js/app.js"></script>
+
+</body>
+</html>
