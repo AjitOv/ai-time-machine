@@ -2,7 +2,10 @@
  * API Client – handles all communication with the FastAPI backend.
  */
 
-const API_BASE = 'http://localhost:8000/api/v1';
+// Auto-detect: use localhost for dev, Render for production
+const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:8000/api/v1'
+    : 'https://ai-time-machine-api.onrender.com/api/v1';
 
 const api = {
     /**
