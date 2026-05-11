@@ -9,16 +9,38 @@ Handles:
 """
 
 import logging
+import time
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
 import yfinance as yf
 from sqlalchemy import select, and_
+
+# How long a cached frame is allowed to stay before we re-fetch from upstream.
+# Tuned per timeframe — finer charts churn faster.
+_CACHE_TTL_SECONDS = {
+    "1m": 30,
+    "5m": 60,
+    "15m": 120,
+    "1h": 240,
+    "4h": 600,
+    "1d": 3600,
+}
+_DEFAULT_TTL = 240
+
+try:
+    from growwapi import GrowwAPI
+    import pyotp
+except ImportError:
+    GrowwAPI = None
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
+from app.engines.dhan_client import DhanClient
+from app.engines.fyers_client import FyersClient
 from app.models.market_data import MarketData
 from app.models.features import Feature
 
@@ -40,17 +62,127 @@ class DataEngine:
     def __init__(self):
         self.symbol = settings.DEFAULT_SYMBOL
         self._cache: Dict[str, pd.DataFrame] = {}
+        self._cache_ts: Dict[str, float] = {}  # last upstream-fetch timestamp per cache key
+        self.dhan = self._init_dhan()
+        self.fyers = self._init_fyers()
+        self.groww = self._init_groww()
+
+    def _is_stale(self, cache_key: str, timeframe: str) -> bool:
+        ts = self._cache_ts.get(cache_key)
+        if ts is None:
+            return True
+        ttl = _CACHE_TTL_SECONDS.get(timeframe, _DEFAULT_TTL)
+        return (time.time() - ts) > ttl
+
+    def _init_dhan(self) -> Optional[DhanClient]:
+        if not (settings.DHAN_CLIENT_ID and settings.DHAN_ACCESS_TOKEN):
+            return None
+        scrip_path = Path(__file__).resolve().parents[3] / "data" / "dhan_scrip_master.csv"
+        logger.info("Dhan client initialized.")
+        return DhanClient(
+            settings.DHAN_CLIENT_ID,
+            settings.DHAN_ACCESS_TOKEN,
+            scrip_master_path=scrip_path,
+        )
+
+    def _init_fyers(self) -> Optional[FyersClient]:
+        if settings.FYERS_APP_ID and settings.FYERS_ACCESS_TOKEN:
+            logger.info("FYERS client initialized.")
+            return FyersClient(settings.FYERS_APP_ID, settings.FYERS_ACCESS_TOKEN)
+        return None
+
+    def _init_groww(self):
+        if GrowwAPI and settings.GROWW_API_KEY:
+            try:
+                if settings.GROWW_TOTP_SECRET:
+                    totp_gen = pyotp.TOTP(settings.GROWW_TOTP_SECRET)
+                    totp = totp_gen.now()
+                    access_token = GrowwAPI.get_access_token(api_key=settings.GROWW_API_KEY, totp=totp)
+                    logger.info("Groww API initialized using TOTP flow.")
+                    return GrowwAPI(access_token)
+                elif settings.GROWW_API_SECRET:
+                    access_token = GrowwAPI.get_access_token(api_key=settings.GROWW_API_KEY, secret=settings.GROWW_API_SECRET)
+                    logger.info("Groww API initialized using Secret flow.")
+                    return GrowwAPI(access_token)
+            except Exception as e:
+                logger.error(f"Failed to initialize Groww API: {e}")
+        return None
 
     # ──────────────────────────────────────────────
     # DATA INGESTION
     # ──────────────────────────────────────────────
 
     def fetch_historical(self, symbol: Optional[str] = None, timeframe: str = "1h") -> pd.DataFrame:
-        """Download historical OHLCV data from yfinance."""
+        """Download historical OHLCV data. Source priority: Dhan → FYERS → Groww → yfinance."""
         sym = symbol or self.symbol
+        is_indian = sym.startswith(("NSE:", "BSE:", "MCX:"))
+
+        cache_key = f"{sym}_{timeframe}"
+
+        # --- PRIMARY: DHAN (NSE/BSE/MCX) ---
+        if self.dhan and is_indian:
+            df = self.dhan.fetch_candles(sym, timeframe)
+            if not df.empty:
+                self._cache[cache_key] = df
+                self._cache_ts[cache_key] = time.time()
+                return df
+            logger.warning(f"Dhan returned no data for {sym} {timeframe}. Falling back.")
+
+        # --- SECONDARY: FYERS (NSE/MCX/BSE) ---
+        if self.fyers and is_indian:
+            df = self.fyers.fetch_candles(sym, timeframe)
+            if not df.empty:
+                self._cache[cache_key] = df
+                self._cache_ts[cache_key] = time.time()
+                return df
+            logger.warning(f"FYERS returned no data for {sym} {timeframe}. Falling back.")
+
+        # --- SECONDARY: GROWW API ---
+        if self.groww:
+            try:
+                groww_sym = sym.replace(".NS", "").replace(".BO", "")
+                end_time_dt = datetime.now()
+                
+                interval_map = {"1m": 1, "5m": 5, "15m": 15, "1h": 60, "4h": 240}
+                interval_min = interval_map.get(timeframe, 60)
+                
+                # Dynamic days back based on timeframe to avoid API limits
+                days_back = 30
+                if timeframe == "1m": days_back = 5
+                elif timeframe in ["5m", "15m"]: days_back = 30
+                else: days_back = 100
+                
+                start_time_dt = end_time_dt - timedelta(days=days_back)
+                
+                logger.info(f"Fetching {groww_sym} {timeframe} data from Groww API")
+                resp = self.groww.get_historical_candle_data(
+                    trading_symbol=groww_sym,
+                    exchange=self.groww.EXCHANGE_NSE,
+                    segment=self.groww.SEGMENT_CASH,
+                    start_time=start_time_dt.strftime("%Y-%m-%d %H:%M:%S"),
+                    end_time=end_time_dt.strftime("%Y-%m-%d %H:%M:%S"),
+                    interval_in_minutes=interval_min
+                )
+                
+                if resp and 'candles' in resp and len(resp['candles']) > 0:
+                    records = resp['candles']
+                    df = pd.DataFrame(records, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+                    df['timestamp'] = pd.to_datetime(df['timestamp'], unit='s')
+                    df.set_index('timestamp', inplace=True)
+
+                    self._cache[cache_key] = df
+                    self._cache_ts[cache_key] = time.time()
+                    logger.info(f"Fetched {len(df)} candles for {sym} {timeframe} via Groww")
+                    return df
+                else:
+                    logger.warning(f"Groww returned empty or invalid data for {sym} {timeframe}. Falling back.")
+            except Exception as e:
+                logger.error(f"Groww API error for {sym} {timeframe}: {e}. Falling back to yfinance.")
+
+        # --- FALLBACK: YFINANCE ---
         tf_config = TF_MAP.get(timeframe, TF_MAP["1h"])
 
-        logger.info(f"Fetching {sym} {timeframe} data (period={tf_config['period']})")
+        logger.info(f"Fetching {sym} {timeframe} data (period={tf_config['period']}) via yfinance")
         try:
             ticker = yf.Ticker(sym)
             df = ticker.history(
@@ -59,7 +191,7 @@ class DataEngine:
                 auto_adjust=True,
             )
             if df.empty:
-                logger.warning(f"No data returned for {sym} {timeframe}")
+                logger.warning(f"No data returned for {sym} {timeframe} via yfinance")
                 return pd.DataFrame()
 
             df = df.rename(columns={
@@ -70,10 +202,9 @@ class DataEngine:
             df.index = pd.to_datetime(df.index)
             df.index = df.index.tz_localize(None) if df.index.tz else df.index
 
-            # Cache it
-            cache_key = f"{sym}_{timeframe}"
             self._cache[cache_key] = df
-            logger.info(f"Fetched {len(df)} candles for {sym} {timeframe}")
+            self._cache_ts[cache_key] = time.time()
+            logger.info(f"Fetched {len(df)} candles for {sym} {timeframe} via yfinance")
             return df
 
         except Exception as e:
@@ -81,12 +212,14 @@ class DataEngine:
             return pd.DataFrame()
 
     def get_cached(self, symbol: Optional[str] = None, timeframe: str = "1h") -> pd.DataFrame:
-        """Return cached data or fetch if not available."""
+        """Return cached data, refreshing from upstream if the cache has aged
+        past the per-timeframe TTL or is missing/empty."""
         sym = symbol or self.symbol
         cache_key = f"{sym}_{timeframe}"
-        if cache_key not in self._cache or self._cache[cache_key].empty:
+        cached = self._cache.get(cache_key)
+        if cached is None or cached.empty or self._is_stale(cache_key, timeframe):
             return self.fetch_historical(sym, timeframe)
-        return self._cache[cache_key]
+        return cached
 
     # ──────────────────────────────────────────────
     # TECHNICAL INDICATORS

@@ -25,7 +25,7 @@
 cd backend
 pip install -r requirements.txt
 python run.py
-# → http://localhost:8000
+# → http://localhost:8001
 
 # Frontend
 cd frontend

@@ -1,11 +1,14 @@
 """Market data API endpoints."""
 
+import asyncio
+
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
+from app.database import async_session, get_db
 from app.config import settings
 from app.engines.data_engine import data_engine
+from app.engines.symbols import MCX_COMMODITIES, NIFTY_50, NIFTY_INDICES
 
 router = APIRouter()
 
@@ -95,3 +98,65 @@ async def ingest_all_timeframes(
         }
 
     return {"symbol": sym, "status": "ok", "timeframes": summary}
+
+
+@router.get("/universe")
+async def get_symbol_universe():
+    """Return the curated symbol lists used by batch operations."""
+    return {
+        "nifty_50": NIFTY_50,
+        "mcx_commodities": MCX_COMMODITIES,
+        "indices": NIFTY_INDICES,
+    }
+
+
+@router.post("/batch/nifty50")
+async def ingest_nifty50(
+    timeframe: str = Query(default="1h"),
+    include_mcx: bool = Query(default=True),
+    include_indices: bool = Query(default=True),
+    concurrency: int = Query(default=2, ge=1, le=10),
+):
+    """Ingest a single timeframe for Nifty 50 + (optionally) MCX + indices.
+
+    Each symbol uses its own DB session to avoid SQLAlchemy session conflicts
+    under concurrency. Low default concurrency (2) respects FYERS rate limits.
+    """
+    symbols = list(NIFTY_50)
+    if include_indices:
+        symbols.extend(NIFTY_INDICES)
+    if include_mcx:
+        symbols.extend(MCX_COMMODITIES)
+
+    sem = asyncio.Semaphore(concurrency)
+
+    async def _ingest_one(sym: str):
+        async with sem:
+            async with async_session() as session:
+                try:
+                    results = await data_engine.ingest_and_compute(session, sym, [timeframe])
+                    await session.commit()
+                except Exception as e:
+                    await session.rollback()
+                    return sym, {"status": "error", "error": str(e)[:120]}
+
+            df = results.get(timeframe)
+            if df is None or df.empty:
+                return sym, {"status": "no_data", "candles": 0}
+            return sym, {
+                "status": "ok",
+                "candles": len(df),
+                "latest_close": round(float(df["close"].iloc[-1]), 2),
+            }
+
+    completed = await asyncio.gather(*(_ingest_one(s) for s in symbols))
+    per_symbol = dict(completed)
+    ok_count = sum(1 for v in per_symbol.values() if v["status"] == "ok")
+
+    return {
+        "timeframe": timeframe,
+        "requested": len(symbols),
+        "succeeded": ok_count,
+        "failed": len(symbols) - ok_count,
+        "results": per_symbol,
+    }

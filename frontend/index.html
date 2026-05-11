@@ -47,16 +47,27 @@
             </div>
         </div>
         <div class="header-center">
-            <div class="symbol-selector">
-                <select id="symbol-select">
-                    <option value="SPY">SPY</option>
-                    <option value="QQQ">QQQ</option>
-                    <option value="AAPL">AAPL</option>
-                    <option value="MSFT">MSFT</option>
-                    <option value="TSLA">TSLA</option>
-                    <option value="BTC-USD">BTC-USD</option>
-                    <option value="^NSEI">NIFTY 50</option>
-                </select>
+            <div class="symbol-search" id="symbol-search">
+                <div class="symbol-search-display" id="symbol-display">
+                    <span class="ssd-ticker" id="ssd-ticker">NIFTY 50</span>
+                    <span class="ssd-meta" id="ssd-meta">NSE · INDEX</span>
+                    <span class="ssd-caret">▾</span>
+                </div>
+                <input type="hidden" id="symbol-select" value="NSE:NIFTY50-INDEX">
+                <div class="symbol-search-pop" id="symbol-search-pop" hidden>
+                    <input type="text" id="symbol-search-input" placeholder="Search ticker or company — TCS, RELIANCE, NIFTY 500, GOLD…" autocomplete="off" />
+                    <div class="symbol-quick-chips" id="symbol-quick-chips">
+                        <span class="qchip" data-sym="NSE:NIFTY50-INDEX" data-name="NIFTY 50">NIFTY 50</span>
+                        <span class="qchip" data-sym="NSE:NIFTYBANK-INDEX" data-name="BANK NIFTY">BANK NIFTY</span>
+                        <span class="qchip" data-sym="NSE:FINNIFTY-INDEX" data-name="FIN NIFTY">FIN NIFTY</span>
+                        <span class="qchip" data-sym="NSE:NIFTY500-INDEX" data-name="NIFTY 500">NIFTY 500</span>
+                        <span class="qchip" data-sym="NSE:NIFTYIT-INDEX" data-name="NIFTY IT">NIFTY IT</span>
+                        <span class="qchip" data-sym="NSE:NIFTYPHARMA-INDEX" data-name="NIFTY PHARMA">PHARMA</span>
+                        <span class="qchip" data-sym="NSE:NIFTYAUTO-INDEX" data-name="NIFTY AUTO">AUTO</span>
+                    </div>
+                    <div class="symbol-search-results" id="symbol-search-results"></div>
+                    <div class="symbol-search-foot" id="symbol-search-foot">Type at least 2 chars · ↑↓ to navigate · Enter to select · Esc to close</div>
+                </div>
             </div>
             <div class="timeframe-selector">
                 <button class="tf-btn" data-tf="5m">5m</button>
@@ -69,6 +80,40 @@
                 <div class="status-dot pulse"></div>
                 <span>ONLINE</span>
             </div>
+            <div class="live-indicator off" id="live-indicator" title="Live tick feed status">
+                <div class="live-dot"></div>
+                <span class="live-text">OFFLINE</span>
+            </div>
+            <button class="token-pill" id="token-pill" title="Dhan access token status — click to refresh">
+                <span class="token-dot"></span>
+                <span id="token-text">DHAN</span>
+            </button>
+
+            <!-- Token rotation modal -->
+            <div class="modal-backdrop" id="token-modal" hidden>
+                <div class="modal-card">
+                    <div class="modal-head">
+                        <h3>Refresh Dhan Access Token</h3>
+                        <button class="modal-close" id="token-modal-close">×</button>
+                    </div>
+                    <p class="modal-help">
+                        Dhan access tokens expire every 24 hours. Generate a new one at
+                        <a href="https://web.dhan.co/" target="_blank" rel="noopener">web.dhan.co</a> →
+                        Profile → DhanHQ Trading APIs → Generate Access Token, then paste it below.
+                        The backend hot-swaps without restarting.
+                    </p>
+                    <div id="token-info" class="token-info">—</div>
+                    <textarea id="token-input" placeholder="eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9..." spellcheck="false"></textarea>
+                    <div class="modal-foot">
+                        <button class="btn-scan paper-secondary" id="token-cancel">Cancel</button>
+                        <button class="btn-scan" id="token-save">Save &amp; hot-swap</button>
+                    </div>
+                </div>
+            </div>
+            <label class="auto-toggle" title="Auto-run analysis when you change symbol or timeframe">
+                <input type="checkbox" id="auto-analyze" checked>
+                <span>auto</span>
+            </label>
             <button class="btn-analyze" id="btn-run-analysis" title="Run Full Analysis">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                     <polygon points="3,1 14,8 3,15" fill="currentColor"/>
@@ -139,9 +184,15 @@
                         <span class="current-price" id="current-price">—</span>
                         <span class="price-change" id="price-change"></span>
                     </div>
+                    <button class="forecast-toggle on" id="forecast-toggle" title="Toggle forward forecast overlay">
+                        <span class="fc-dot"></span>
+                        <span>FORECAST</span>
+                    </button>
                 </div>
                 <div class="panel-body">
                     <div id="chart-container"></div>
+                    <div class="next-session-banner" id="next-session-banner"></div>
+                    <div class="forecast-summary" id="forecast-summary"></div>
                 </div>
             </div>
 
@@ -299,7 +350,7 @@
                             <span class="perf-label">Win Rate</span>
                         </div>
                         <div class="perf-stat">
-                            <span class="perf-value" id="perf-pnl">$0</span>
+                            <span class="perf-value" id="perf-pnl">₹0</span>
                             <span class="perf-label">Total PnL</span>
                         </div>
                         <div class="perf-stat">
@@ -342,6 +393,251 @@
                 </div>
             </div>
 
+            <!-- ═══════════════ SCANNER PANEL ═══════════════ -->
+            <div class="panel scanner-panel">
+                <div class="panel-header">
+                    <h3>🔭 Top Opportunities</h3>
+                    <div class="scanner-controls">
+                        <select id="scanner-universe" title="Universe">
+                            <option value="nifty50">Nifty 50</option>
+                            <option value="indices">Indices</option>
+                            <option value="all">All</option>
+                        </select>
+                        <select id="scanner-timeframe" title="Timeframe">
+                            <option value="15m">15m</option>
+                            <option value="1h" selected>1h</option>
+                            <option value="4h">4h</option>
+                        </select>
+                        <label class="scanner-only-actionable">
+                            <input type="checkbox" id="scanner-actionable"> actionable only
+                        </label>
+                        <button class="btn-scan" id="scanner-run">Scan</button>
+                    </div>
+                </div>
+                <div class="scanner-meta" id="scanner-meta"></div>
+                <div class="scanner-table-wrap">
+                    <table class="scanner-table" id="scanner-table">
+                        <thead>
+                            <tr>
+                                <th>Symbol</th>
+                                <th>Dir</th>
+                                <th>Score</th>
+                                <th>Price</th>
+                                <th>Phase</th>
+                                <th>Regime</th>
+                                <th>Zone</th>
+                                <th>DNA</th>
+                                <th>Sim ↑</th>
+                                <th>Unc.</th>
+                                <th>Target</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="scanner-tbody">
+                            <tr><td colspan="12" class="no-data">Click <strong>Scan</strong> to find top setups across the chosen universe.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ═══════════════ DATA IMPORT ═══════════════ -->
+            <div class="panel import-panel">
+                <div class="panel-header">
+                    <h3>📂 Import historical data <span class="activity-sub">load CSV / Parquet / Feather / XLSX from disk into the engine cache</span></h3>
+                    <div class="import-controls">
+                        <button class="btn-scan paper-secondary" id="import-cache-list" title="Show what's currently in the candle cache">View cache</button>
+                    </div>
+                </div>
+                <div class="import-form">
+                    <div class="import-row">
+                        <label>File path</label>
+                        <input type="text" id="import-path" placeholder="e.g. data/imports/nifty_10y.csv  (absolute or repo-relative)" />
+                    </div>
+                    <div class="import-row">
+                        <label>Symbol</label>
+                        <input type="text" id="import-symbol" value="NSE:NIFTY50-INDEX" />
+                    </div>
+                    <div class="import-row">
+                        <label>Timeframe</label>
+                        <select id="import-timeframe">
+                            <option value="">auto-detect</option>
+                            <option value="1m">1m</option>
+                            <option value="5m">5m</option>
+                            <option value="15m">15m</option>
+                            <option value="1h">1h</option>
+                            <option value="4h">4h</option>
+                            <option value="1d">1d</option>
+                        </select>
+                        <label class="scanner-only-actionable" style="margin-left:auto;">
+                            <input type="checkbox" id="import-pin" checked> pin (don't expire)
+                        </label>
+                        <button class="btn-scan" id="import-run">Import</button>
+                    </div>
+                </div>
+                <div class="import-status" id="import-status"></div>
+                <div class="scanner-table-wrap" id="cache-list-wrap" hidden>
+                    <table class="scanner-table">
+                        <thead><tr><th>Key</th><th>Rows</th><th>Start</th><th>End</th><th>Pinned</th></tr></thead>
+                        <tbody id="cache-list-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ═══════════════ BACKTEST ═══════════════ -->
+            <div class="panel backtest-panel">
+                <div class="panel-header">
+                    <h3>📜 Backtest <span class="activity-sub">replay history through the engine stack — real equity curve, real win rate</span></h3>
+                    <div class="bt-controls">
+                        <select id="bt-timeframe" title="Timeframe">
+                            <option value="15m">15m</option>
+                            <option value="1h" selected>1h</option>
+                            <option value="4h">4h</option>
+                        </select>
+                        <select id="bt-bars" title="Max bars to replay">
+                            <option value="300">300 bars</option>
+                            <option value="600" selected>600 bars</option>
+                            <option value="1200">1200 bars</option>
+                            <option value="2400">2400 bars</option>
+                        </select>
+                        <button class="btn-scan" id="bt-run">Run backtest</button>
+                        <button class="btn-scan paper-secondary" id="bt-seed-dna" title="Seed the live DNA library with patterns from this backtest" disabled>🧬 Seed DNA</button>
+                    </div>
+                </div>
+                <div class="bt-status" id="bt-status"></div>
+
+                <div class="bt-stats" id="bt-stats" hidden>
+                    <div class="bt-stat"><div class="ps-k">Total return</div><div class="ps-v" id="bt-total"></div></div>
+                    <div class="bt-stat"><div class="ps-k">Trades</div><div class="ps-v" id="bt-count"></div></div>
+                    <div class="bt-stat"><div class="ps-k">Win rate</div><div class="ps-v" id="bt-wr"></div></div>
+                    <div class="bt-stat"><div class="ps-k">Profit factor</div><div class="ps-v" id="bt-pf"></div></div>
+                    <div class="bt-stat"><div class="ps-k">Avg RR</div><div class="ps-v" id="bt-rr"></div></div>
+                    <div class="bt-stat"><div class="ps-k">Max drawdown</div><div class="ps-v" id="bt-dd"></div></div>
+                    <div class="bt-stat"><div class="ps-k">Sharpe</div><div class="ps-v" id="bt-sharpe"></div></div>
+                    <div class="bt-stat"><div class="ps-k">Bars / runtime</div><div class="ps-v" id="bt-runtime"></div></div>
+                </div>
+
+                <div class="bt-equity-wrap" id="bt-equity-wrap" hidden>
+                    <div class="bt-equity-head">Equity curve <span id="bt-equity-meta"></span></div>
+                    <svg id="bt-equity" viewBox="0 0 900 200" preserveAspectRatio="none"></svg>
+                </div>
+
+                <div class="bt-breakdowns" id="bt-breakdowns" hidden>
+                    <div class="bt-bd">
+                        <div class="bt-bd-head">By direction</div>
+                        <div id="bt-by-dir"></div>
+                    </div>
+                    <div class="bt-bd">
+                        <div class="bt-bd-head">By regime</div>
+                        <div id="bt-by-regime"></div>
+                    </div>
+                </div>
+
+                <div class="scanner-table-wrap" id="bt-trades-wrap" hidden>
+                    <table class="scanner-table">
+                        <thead>
+                            <tr>
+                                <th>Opened</th>
+                                <th>Dir</th>
+                                <th>Entry</th>
+                                <th>Exit</th>
+                                <th>P&amp;L %</th>
+                                <th>RR</th>
+                                <th>Bars</th>
+                                <th>Conf.</th>
+                                <th>Regime</th>
+                                <th>Phase</th>
+                                <th>Outcome</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bt-trades-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ═══════════════ PAPER TRADING LOOP ═══════════════ -->
+            <div class="panel paper-loop-panel">
+                <div class="panel-header">
+                    <h3>🤖 Paper-Trading Loop <span class="activity-sub">auto-runs the analysis pipeline + tracks virtual positions</span></h3>
+                    <div class="paper-controls">
+                        <button class="btn-scan" id="paper-toggle">…</button>
+                        <button class="btn-scan paper-secondary" id="paper-scan-now">Scan now</button>
+                        <button class="btn-scan paper-secondary" id="paper-resolve-now">Resolve now</button>
+                    </div>
+                </div>
+                <div class="paper-status" id="paper-status">
+                    <div class="ps-cell"><div class="ps-k">State</div><div class="ps-v" id="ps-state">—</div></div>
+                    <div class="ps-cell"><div class="ps-k">Market</div><div class="ps-v" id="ps-market">—</div></div>
+                    <div class="ps-cell"><div class="ps-k">Open positions</div><div class="ps-v" id="ps-open">—</div></div>
+                    <div class="ps-cell"><div class="ps-k">Last scan</div><div class="ps-v" id="ps-last-scan">—</div></div>
+                    <div class="ps-cell"><div class="ps-k">Last scan signals</div><div class="ps-v" id="ps-last-signals">—</div></div>
+                    <div class="ps-cell"><div class="ps-k">Next scan</div><div class="ps-v" id="ps-next-scan">—</div></div>
+                </div>
+                <div class="paper-tabs">
+                    <button class="paper-tab active" data-tab="all">All</button>
+                    <button class="paper-tab" data-tab="open">Open</button>
+                    <button class="paper-tab" data-tab="closed">Closed</button>
+                </div>
+                <div class="scanner-table-wrap">
+                    <table class="scanner-table paper-positions-table" id="paper-positions-table">
+                        <thead>
+                            <tr>
+                                <th>Opened</th>
+                                <th>Symbol</th>
+                                <th>TF</th>
+                                <th>Dir</th>
+                                <th>Entry</th>
+                                <th>Cur / Exit</th>
+                                <th>SL</th>
+                                <th>TP</th>
+                                <th>P&amp;L</th>
+                                <th>P&amp;L %</th>
+                                <th>RR</th>
+                                <th>Status</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="paper-positions-tbody">
+                            <tr><td colspan="13" class="no-data">No paper trades yet — start the loop or run a scan.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ═══════════════ RECENT ACTIVITY ═══════════════ -->
+            <div class="panel activity-panel">
+                <div class="panel-header">
+                    <h3>📋 Recent Activity <span class="activity-sub">all symbols · last 50 decisions</span></h3>
+                    <div class="activity-controls">
+                        <label class="scanner-only-actionable">
+                            <input type="checkbox" id="activity-actionable"> actionable only
+                        </label>
+                        <button class="btn-scan" id="activity-refresh">Refresh</button>
+                    </div>
+                </div>
+                <div class="scanner-meta" id="activity-meta"></div>
+                <div class="scanner-table-wrap">
+                    <table class="scanner-table activity-table" id="activity-table">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Symbol</th>
+                                <th>TF</th>
+                                <th>Dir</th>
+                                <th>Entry</th>
+                                <th>SL</th>
+                                <th>TP</th>
+                                <th>Conf.</th>
+                                <th>Outcome</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="activity-tbody">
+                            <tr><td colspan="10" class="no-data">No activity yet — run an analysis to populate this.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
         </section>
 
     </main>
@@ -366,6 +662,9 @@
     <script src="js/api.js"></script>
     <script src="js/chart.js"></script>
     <script src="js/components.js"></script>
+    <script src="js/symbol-search.js"></script>
+    <script src="js/live-feed.js"></script>
+    <script src="js/forecast.js"></script>
     <script src="js/app.js"></script>
 
 </body>

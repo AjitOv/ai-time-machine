@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>AI Time Machine — Trade the Probable Future</title>
+<meta name="description" content="A self-evolving intelligence system that models market behavior with 11 cooperating engines, Monte Carlo simulation, pattern memory, and adaptive risk control." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ───────── NAV ───────── -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a class="logo" href="#">
+      <span class="logo-mark">⌛</span>
+      <span>AI Time Machine</span>
+    </a>
+    <div class="nav-links">
+      <a href="#engines">Engines</a>
+      <a href="#how">How it works</a>
+      <a href="#specs">Specs</a>
+      <a href="explainer.html">Watch demo</a>
+      <a class="btn btn-primary" href="../index.html">Launch app →</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ───────── HERO ───────── -->
+<header class="hero">
+  <div class="hero-bg">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="grid-fade"></div>
+  </div>
+  <div class="hero-inner">
+    <div class="badge">11 cooperating engines · Self-evolving · Live NSE/BSE/MCX</div>
+    <h1>
+      Don't predict the market.<br/>
+      <span class="grad">Reveal its probable futures.</span>
+    </h1>
+    <p class="lede">
+      AI Time Machine is a self-evolving intelligence system that fuses
+      market context, behavioral signals, pattern memory and Monte Carlo
+      simulation into a single, gated trade decision — with adaptive risk
+      and self-evaluating meta-intelligence.
+    </p>
+    <div class="cta-row">
+      <a class="btn btn-primary btn-lg" href="../index.html">Launch the system →</a>
+      <a class="btn btn-ghost btn-lg" href="explainer.html">▶ Watch 90-second demo</a>
+    </div>
+
+    <div class="stats" id="hero-stats">
+      <div class="stat" data-stat="trades">
+        <div class="stat-num" data-count="0">—</div>
+        <div class="stat-label">Trades logged</div>
+      </div>
+      <div class="stat" data-stat="winrate">
+        <div class="stat-num" data-suffix="%">—</div>
+        <div class="stat-label">Live win rate</div>
+      </div>
+      <div class="stat" data-stat="health">
+        <div class="stat-num stat-text">—</div>
+        <div class="stat-label">System health</div>
+      </div>
+      <div class="stat" data-stat="engines">
+        <div class="stat-num" data-count="11">0</div>
+        <div class="stat-label">Cooperating engines</div>
+      </div>
+    </div>
+
+    <div class="weights-strip" id="weights-strip">
+      <div class="weights-label">Live adaptive weights</div>
+      <div class="weights-bars">
+        <div class="wbar" data-w="context"><span>Context</span><div class="wbar-track"><div class="wbar-fill"></div></div><b>—</b></div>
+        <div class="wbar" data-w="behavior"><span>Behavior</span><div class="wbar-track"><div class="wbar-fill"></div></div><b>—</b></div>
+        <div class="wbar" data-w="dna"><span>DNA</span><div class="wbar-track"><div class="wbar-fill"></div></div><b>—</b></div>
+        <div class="wbar" data-w="simulation"><span>Simulation</span><div class="wbar-track"><div class="wbar-fill"></div></div><b>—</b></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ───────── PROBLEM / PROMISE ───────── -->
+<section class="promise">
+  <div class="container">
+    <div class="promise-grid">
+      <div>
+        <h2>Most "AI trading" tools are a single black box.</h2>
+        <p>
+          One model. One signal. No idea why it fired, no memory of what worked,
+          no awareness when the regime shifts under it.
+        </p>
+      </div>
+      <div>
+        <h2 class="grad-text">Time Machine is eleven minds, voting.</h2>
+        <p>
+          Context gatekeeps. Behavior reads order flow. DNA recalls similar
+          setups. Simulation rolls 100 futures. Decision arbitrates. Risk caps
+          exposure. Meta watches the whole system for drift — and the entire
+          stack rewrites its own weights from every trade outcome.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ───────── ENGINES ───────── -->
+<section id="engines" class="engines">
+  <div class="container">
+    <div class="section-head">
+      <div class="eyebrow">The intelligence stack</div>
+      <h2>11 engines. One decision.</h2>
+      <p>Each engine has one job. None is allowed to act alone.</p>
+    </div>
+
+    <div class="engine-grid">
+
+      <div class="engine-card" data-color="#5cf">
+        <div class="card-num">01</div>
+        <h3>Data Engine</h3>
+        <p>Multi-source ingestion with automatic failover: <strong>Dhan → FYERS → Groww → yfinance</strong>. Five timeframes (1m / 5m / 15m / 1h / 4h) and live RSI(14), EMA(11/21/50), ATR(14) computed in-stream.</p>
+        <div class="card-meta">Source redundancy · 60s polling · 5 timeframes</div>
+      </div>
+
+      <div class="engine-card" data-color="#9af">
+        <div class="card-num">02</div>
+        <h3>Context Engine</h3>
+        <p>The <strong>gatekeeper</strong>. Detects market phase (RANGE / TREND / EXHAUSTION / CHAOTIC), classifies regime, reads HTF bias from EMA(50) slope, and maps Fibonacci premium/discount zones.</p>
+        <div class="card-meta">Auto-rejects CHAOTIC phase · ATR-ratio circuit breaker</div>
+      </div>
+
+      <div class="engine-card" data-color="#a9f">
+        <div class="card-num">03</div>
+        <h3>Behavior Engine</h3>
+        <p>Detects liquidity sweeps, false-breakout traps, momentum shifts and volatility expansion — then scores <strong>confluence</strong> with context for an alignment number up to ±0.9.</p>
+        <div class="card-meta">MD5 pattern signatures · Replay-grade accountability</div>
+      </div>
+
+      <div class="engine-card" data-color="#c8f">
+        <div class="card-num">04</div>
+        <h3>DNA Engine</h3>
+        <p>The <strong>memory</strong>. Stores winning setups as 7-dimensional feature vectors and matches the present moment against history with <strong>cosine similarity</strong>. Reliability = win-rate × log(N).</p>
+        <div class="card-meta">Auto-decay weak setups · Confidence threshold 0.6</div>
+      </div>
+
+      <div class="engine-card" data-color="#f8b">
+        <div class="card-num">05</div>
+        <h3>Simulation Engine</h3>
+        <p>100 Monte Carlo paths × 50 steps using Geometric Brownian Motion, drift-biased by DNA direction (±30%) and σ-scaled by regime (0.9× trending → 1.8× news-driven).</p>
+        <div class="card-meta">90% confidence interval · Target/SL hit probability</div>
+      </div>
+
+      <div class="engine-card" data-color="#fa9">
+        <div class="card-num">06</div>
+        <h3>Scenario Engine</h3>
+        <p>Wraps simulation output into three readable futures — <strong>Bullish · Bearish · Neutral</strong> — sorted by probability, each with price target, dominant probability and auto-generated risk narrative.</p>
+        <div class="card-meta">95th / 50th / 5th percentile targets</div>
+      </div>
+
+      <div class="engine-card engine-card-feat" data-color="#fd6">
+        <div class="card-num">07</div>
+        <h3>Decision Engine</h3>
+        <p>The <strong>final arbiter</strong>. Five gates must pass: context permission, DNA &gt; 0.6, sim probability &gt; 60%, uncertainty &lt; 0.4, score |&gt; 0.15|. ANY failure → NO_TRADE.</p>
+        <div class="card-meta">Auto entry · 1.5× ATR stop · 2:1 RR minimum</div>
+      </div>
+
+      <div class="engine-card" data-color="#fb8">
+        <div class="card-num">08</div>
+        <h3>Uncertainty Engine</h3>
+        <p>Measures signal agreement across engines (-1 = all disagree, +1 = all agree), tracks simulation stability and flags conflicts. <strong>Kills false-confidence trades</strong> (high score + high uncertainty).</p>
+        <div class="card-meta">Conflict detection · Stability scoring</div>
+      </div>
+
+      <div class="engine-card" data-color="#fc7">
+        <div class="card-num">09</div>
+        <h3>Risk Engine</h3>
+        <p>Dynamic position sizing 0.5× → 1.5× base by confidence. Hard caps: <strong>2% daily risk</strong> across all trades, <strong>3 consecutive losses</strong> = trading halted for the day.</p>
+        <div class="card-meta">Confidence-scaled sizing · Daily kill-switch</div>
+      </div>
+
+      <div class="engine-card" data-color="#7df">
+        <div class="card-num">10</div>
+        <h3>Learning Engine</h3>
+        <p><strong>Reinforcement loop.</strong> Every trade outcome rewards engines that voted correctly and penalises those that didn't. Engine weights auto-rebalance between 0.05 and 0.6, summed to 1.0.</p>
+        <div class="card-meta">LR 0.01 · 20-trade rolling stats</div>
+      </div>
+
+      <div class="engine-card" data-color="#5fc">
+        <div class="card-num">11</div>
+        <h3>Meta Engine</h3>
+        <p>Watches the watcher. Detects performance decline, regime instability and <strong>overfitting</strong> (recent vs all-time win-rate gap × 3). Auto-raises thresholds and slashes learning rate when needed.</p>
+        <div class="card-meta">Self-healing · CRITICAL/HEALTHY status</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ───────── HOW IT WORKS ───────── -->
+<section id="how" class="how">
+  <div class="container">
+    <div class="section-head">
+      <div class="eyebrow">The pipeline</div>
+      <h2>From candle to decision in one pass.</h2>
+    </div>
+
+    <div class="pipeline">
+      <div class="pipe-step"><div class="pipe-dot">01</div><div><strong>Ingest</strong><span>Live OHLCV across 5 timeframes</span></div></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step"><div class="pipe-dot">02</div><div><strong>Gatekeep</strong><span>Context filters out chaos</span></div></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step"><div class="pipe-dot">03</div><div><strong>Read</strong><span>Behavior detects intent</span></div></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step"><div class="pipe-dot">04</div><div><strong>Recall</strong><span>DNA finds analogues</span></div></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step"><div class="pipe-dot">05</div><div><strong>Simulate</strong><span>100 futures × 50 steps</span></div></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step"><div class="pipe-dot">06</div><div><strong>Decide</strong><span>5 gates · BUY / SELL / NO_TRADE</span></div></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step"><div class="pipe-dot">07</div><div><strong>Adapt</strong><span>Reward / penalize · weights rebalance</span></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ───────── SPECS ───────── -->
+<section id="specs" class="specs">
+  <div class="container">
+    <div class="section-head">
+      <div class="eyebrow">Under the hood</div>
+      <h2>Numbers that make the engine real.</h2>
+    </div>
+
+    <div class="spec-grid">
+      <div class="spec"><div class="spec-num">100 × 50</div><div>Monte Carlo paths × forecast steps per call</div></div>
+      <div class="spec"><div class="spec-num">7-D</div><div>Pattern feature vectors stored in DNA memory</div></div>
+      <div class="spec"><div class="spec-num">5</div><div>Timeframes fused (1m, 5m, 15m, 1h, 4h)</div></div>
+      <div class="spec"><div class="spec-num">5</div><div>Decision gates — all must pass</div></div>
+      <div class="spec"><div class="spec-num">2 : 1</div><div>Minimum reward-to-risk on every trade</div></div>
+      <div class="spec"><div class="spec-num">1.5 ×</div><div>ATR stop-loss distance</div></div>
+      <div class="spec"><div class="spec-num">2 %</div><div>Hard daily-risk ceiling</div></div>
+      <div class="spec"><div class="spec-num">0.01</div><div>Online learning rate, applied per outcome</div></div>
+    </div>
+
+    <div class="api-block">
+      <div class="api-head">REST API · v1</div>
+      <div class="api-grid">
+        <code><span class="m post">POST</span> /api/v1/analysis/run</code>
+        <code><span class="m get">GET</span>  /api/v1/analysis/context</code>
+        <code><span class="m get">GET</span>  /api/v1/analysis/behavior</code>
+        <code><span class="m post">POST</span> /api/v1/simulation/run</code>
+        <code><span class="m get">GET</span>  /api/v1/simulation/scenarios</code>
+        <code><span class="m get">GET</span>  /api/v1/market/data</code>
+        <code><span class="m get">GET</span>  /api/v1/system/health</code>
+        <code><span class="m get">GET</span>  /api/v1/system/performance</code>
+        <code><span class="m get">GET</span>  /api/v1/system/weights</code>
+        <code><span class="m get">GET</span>  /api/v1/system/trades</code>
+      </div>
+    </div>
+
+    <div class="stack-row">
+      <div><strong>Backend</strong> · FastAPI · SQLAlchemy async · SQLite</div>
+      <div><strong>Frontend</strong> · Vanilla JS · TradingView Lightweight Charts</div>
+      <div><strong>Data</strong> · Dhan REST · FYERS · Groww · yfinance</div>
+      <div><strong>Deploy</strong> · Docker · Render · Vercel</div>
+    </div>
+  </div>
+</section>
+
+<!-- ───────── COMPARISON ───────── -->
+<section class="compare">
+  <div class="container">
+    <div class="section-head">
+      <div class="eyebrow">vs. everything else</div>
+      <h2>What sets it apart.</h2>
+    </div>
+
+    <div class="compare-grid">
+      <div class="compare-col compare-them">
+        <div class="compare-head">Typical "AI trading bot"</div>
+        <ul>
+          <li>One opaque model</li>
+          <li>One signal, no reasoning</li>
+          <li>Static weights, frozen at training</li>
+          <li>No memory of past setups</li>
+          <li>No awareness of regime change</li>
+          <li>No risk circuit breakers</li>
+          <li>No way to explain a decision</li>
+        </ul>
+      </div>
+      <div class="compare-col compare-us">
+        <div class="compare-head">AI Time Machine</div>
+        <ul>
+          <li>11 specialised, transparent engines</li>
+          <li>Decision + reason list + confidence</li>
+          <li>Weights adapt after every trade</li>
+          <li>Cosine-similarity pattern recall</li>
+          <li>Meta-engine flags drift &amp; overfitting</li>
+          <li>2% daily cap · 3-loss kill-switch</li>
+          <li>Every gate logged &amp; auditable</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ───────── FINAL CTA ───────── -->
+<section class="final">
+  <div class="container final-inner">
+    <h2>The market is a probability cloud.<br/><span class="grad-text">Time Machine maps it.</span></h2>
+    <p>Eleven engines. One decision. Self-evolving from every trade.</p>
+    <div class="cta-row center">
+      <a class="btn btn-primary btn-lg" href="../index.html">Launch the system →</a>
+      <a class="btn btn-ghost btn-lg" href="explainer.html">Watch the 90-second demo</a>
+    </div>
+  </div>
+</section>
+
+<footer class="foot">
+  <div class="container foot-inner">
+    <span>© AI Time Machine · v1.0</span>
+    <span class="muted">Built with FastAPI, SQLAlchemy &amp; TradingView Lightweight Charts</span>
+  </div>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>

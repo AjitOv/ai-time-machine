@@ -125,6 +125,12 @@ const ChartManager = {
         this.candleSeries.setData(candleData);
         this.volumeSeries.setData(volData);
 
+        // Seed the live tick feed with the latest candle so subsequent
+        // ticks can mutate it in place without a full reload.
+        if (window.LiveFeed && typeof window.LiveFeed.seedFromCandles === 'function') {
+            window.LiveFeed.seedFromCandles(candles);
+        }
+
         // EMA lines
         if (features && features.length > 0) {
             const ema11Data = features

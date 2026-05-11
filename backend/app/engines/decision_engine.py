@@ -52,14 +52,23 @@ class DecisionEngine:
         scenarios: ScenarioResult,
         uncertainty: float = 0.0,
         weights: Optional[dict] = None,
+        stop_atr: Optional[float] = None,
     ) -> TradeDecision:
-        """Make a trade decision based on all engine outputs."""
+        """Make a trade decision based on all engine outputs.
+
+        `stop_atr` (optional): use this ATR for SL/TP distance instead of the
+        current dataframe's ATR(14). Intended for intraday timeframes that
+        otherwise size stops too tightly relative to overnight gaps and opening
+        volatility — pass the higher-timeframe (1h or daily) ATR so stops sit
+        outside intraday noise.
+        """
 
         if df.empty:
             return self._no_trade("No market data available")
 
         current_price = float(df["close"].iloc[-1])
-        atr = float(df["atr_14"].iloc[-1]) if "atr_14" in df else current_price * 0.01
+        local_atr = float(df["atr_14"].iloc[-1]) if "atr_14" in df else current_price * 0.01
+        atr = stop_atr if stop_atr and stop_atr > 0 else local_atr
 
         # ── COMPUTE FINAL SCORE ──
         w = weights or {
@@ -103,9 +112,20 @@ class DecisionEngine:
         if uncertainty > settings.UNCERTAINTY_MAX_THRESHOLD:
             rejected_reasons.append(f"Uncertainty too high: {uncertainty:.2f} > {settings.UNCERTAINTY_MAX_THRESHOLD}")
 
-        # Gate 5: Score must be decisive
-        if abs(final_score) < 0.15:
-            rejected_reasons.append(f"Score not decisive: {final_score:.3f}")
+        # Gate 5: Score must be decisive — asymmetric thresholds.
+        # Markets structurally drift up; counter-trend SELLs need stronger
+        # conviction than BUYs to avoid bottom-fishing during V-recoveries.
+        score_threshold = 0.25 if final_score < 0 else 0.15
+        if abs(final_score) < score_threshold:
+            rejected_reasons.append(f"Score not decisive: {final_score:.3f} (threshold {score_threshold})")
+
+        # Gate 6: SELL signals require an actual bearish HTF bias.
+        # Without this, SELLs fire on transient bearish patterns inside
+        # bull markets — every one of those gets stopped out by trend.
+        if final_score < 0 and context.htf_bias != "BEARISH":
+            rejected_reasons.append(
+                f"SELL blocked: HTF not bearish (htf_bias={context.htf_bias})"
+            )
 
         # ── DETERMINE DIRECTION ──
         if rejected_reasons:

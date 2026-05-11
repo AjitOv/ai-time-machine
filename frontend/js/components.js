@@ -39,9 +39,9 @@ const Components = {
         gaugeValue.textContent = `${(conf * 100).toFixed(1)}%`;
 
         // Levels
-        document.getElementById('level-entry').textContent = decision.entry_price ? `$${decision.entry_price.toFixed(2)}` : '—';
-        document.getElementById('level-sl').textContent = decision.stop_loss ? `$${decision.stop_loss.toFixed(2)}` : '—';
-        document.getElementById('level-tp').textContent = decision.take_profit ? `$${decision.take_profit.toFixed(2)}` : '—';
+        document.getElementById('level-entry').textContent = decision.entry_price ? `₹${decision.entry_price.toFixed(2)}` : '—';
+        document.getElementById('level-sl').textContent = decision.stop_loss ? `₹${decision.stop_loss.toFixed(2)}` : '—';
+        document.getElementById('level-tp').textContent = decision.take_profit ? `₹${decision.take_profit.toFixed(2)}` : '—';
         document.getElementById('level-rr').textContent = decision.risk_reward ? `1:${decision.risk_reward.toFixed(1)}` : '—';
 
         // Reasons
@@ -85,7 +85,7 @@ const Components = {
         setCtx('ctx-zone', context.zone,
             context.zone === 'DISCOUNT' ? 'bullish' :
             context.zone === 'PREMIUM' ? 'bearish' : 'neutral');
-        setCtx('ctx-eq', `$${context.equilibrium?.toFixed(2) || '—'}`);
+        setCtx('ctx-eq', `₹${context.equilibrium?.toFixed(2) || '—'}`);
         setCtx('ctx-perm', context.trade_permission ? '✓ YES' : '✕ NO',
             context.trade_permission ? 'bullish' : 'bearish');
 
@@ -122,19 +122,19 @@ const Components = {
         const bull = findScenario('BULLISH');
         document.getElementById('prob-bullish').textContent = `${((bull.probability || 0) * 100).toFixed(1)}%`;
         document.getElementById('bar-bullish').style.width = `${(bull.probability || 0) * 100}%`;
-        document.getElementById('target-bullish').textContent = `Target: $${bull.expected_price?.toFixed(2) || '—'}`;
+        document.getElementById('target-bullish').textContent = `Target: ₹${bull.expected_price?.toFixed(2) || '—'}`;
 
         // Bearish
         const bear = findScenario('BEARISH');
         document.getElementById('prob-bearish').textContent = `${((bear.probability || 0) * 100).toFixed(1)}%`;
         document.getElementById('bar-bearish').style.width = `${(bear.probability || 0) * 100}%`;
-        document.getElementById('target-bearish').textContent = `Target: $${bear.expected_price?.toFixed(2) || '—'}`;
+        document.getElementById('target-bearish').textContent = `Target: ₹${bear.expected_price?.toFixed(2) || '—'}`;
 
         // Neutral
         const neut = findScenario('NEUTRAL');
         document.getElementById('prob-neutral').textContent = `${((neut.probability || 0) * 100).toFixed(1)}%`;
         document.getElementById('bar-neutral').style.width = `${(neut.probability || 0) * 100}%`;
-        document.getElementById('target-neutral').textContent = `Range: $${neut.expected_price?.toFixed(2) || '—'}`;
+        document.getElementById('target-neutral').textContent = `Range: ₹${neut.expected_price?.toFixed(2) || '—'}`;
 
         // Dominant badge
         const dominant = scenarios.reduce((a, b) => a.probability > b.probability ? a : b, {label: '—'});
@@ -147,10 +147,10 @@ const Components = {
 
         // Simulation stats
         if (simulation) {
-            document.getElementById('sim-mean').textContent = `$${simulation.mean_final_price?.toFixed(2) || '—'}`;
+            document.getElementById('sim-mean').textContent = `₹${simulation.mean_final_price?.toFixed(2) || '—'}`;
             const range = simulation.price_range;
             document.getElementById('sim-range').textContent = range ?
-                `$${range[0]?.toFixed(2)} – $${range[1]?.toFixed(2)}` : '—';
+                `₹${range[0]?.toFixed(2)} – ₹${range[1]?.toFixed(2)}` : '—';
             const bias = simulation.simulation_bias || 0;
             const biasEl = document.getElementById('sim-bias');
             biasEl.textContent = `${bias > 0 ? '+' : ''}${bias.toFixed(4)}`;
@@ -243,7 +243,7 @@ const Components = {
         if (perf) {
             document.getElementById('perf-total').textContent = perf.total_trades || 0;
             document.getElementById('perf-winrate').textContent = `${((perf.win_rate || 0) * 100).toFixed(0)}%`;
-            document.getElementById('perf-pnl').textContent = `$${(perf.total_pnl || 0).toFixed(0)}`;
+            document.getElementById('perf-pnl').textContent = `₹${(perf.total_pnl || 0).toFixed(0)}`;
             document.getElementById('perf-rr').textContent = (perf.avg_rr || 0).toFixed(1);
         }
 
@@ -301,9 +301,9 @@ const Components = {
                 <tr>
                     <td>${time}</td>
                     <td class="${dirClass}">${t.direction}</td>
-                    <td>${t.entry_price ? '$' + t.entry_price.toFixed(2) : '—'}</td>
-                    <td>${t.stop_loss ? '$' + t.stop_loss.toFixed(2) : '—'}</td>
-                    <td>${t.take_profit ? '$' + t.take_profit.toFixed(2) : '—'}</td>
+                    <td>${t.entry_price ? '₹' + t.entry_price.toFixed(2) : '—'}</td>
+                    <td>${t.stop_loss ? '₹' + t.stop_loss.toFixed(2) : '—'}</td>
+                    <td>${t.take_profit ? '₹' + t.take_profit.toFixed(2) : '—'}</td>
                     <td>${t.confidence ? (t.confidence * 100).toFixed(0) + '%' : '—'}</td>
                     <td class="${outcomeClass}">${t.outcome || '—'}</td>
                 </tr>
@@ -316,7 +316,7 @@ const Components = {
         const priceEl = document.getElementById('current-price');
         const changeEl = document.getElementById('price-change');
 
-        priceEl.textContent = price ? `$${price.toFixed(2)}` : '—';
+        priceEl.textContent = price ? `₹${price.toFixed(2)}` : '—';
 
         if (change !== undefined && change !== null) {
             const pct = change;

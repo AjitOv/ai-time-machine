@@ -48,10 +48,21 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"Data pre-fetch failed (non-fatal): {e}")
 
+    # Auto-start the paper-trading loop if enabled in settings
+    if settings.PAPER_LOOP_ENABLED:
+        from app.engines.paper_loop import paper_loop
+        await paper_loop.start()
+        logger.info("Paper-trading loop auto-started (PAPER_LOOP_ENABLED=true)")
+
     yield
 
     # ── SHUTDOWN ──
     logger.info("Shutting down AI Time Machine")
+    try:
+        from app.engines.paper_loop import paper_loop
+        await paper_loop.stop()
+    except Exception as e:
+        logger.debug(f"paper_loop stop error: {e}")
 
 
 # Create FastAPI app

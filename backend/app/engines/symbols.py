@@ -1,0 +1,70 @@
+"""Curated symbol lists for batch operations."""
+
+NIFTY_50 = [
+    "NSE:ADANIENT-EQ",
+    "NSE:ADANIPORTS-EQ",
+    "NSE:APOLLOHOSP-EQ",
+    "NSE:ASIANPAINT-EQ",
+    "NSE:AXISBANK-EQ",
+    "NSE:BAJAJ-AUTO-EQ",
+    "NSE:BAJFINANCE-EQ",
+    "NSE:BAJAJFINSV-EQ",
+    "NSE:BEL-EQ",
+    "NSE:BPCL-EQ",
+    "NSE:BHARTIARTL-EQ",
+    "NSE:BRITANNIA-EQ",
+    "NSE:CIPLA-EQ",
+    "NSE:COALINDIA-EQ",
+    "NSE:DRREDDY-EQ",
+    "NSE:EICHERMOT-EQ",
+    "NSE:GRASIM-EQ",
+    "NSE:HCLTECH-EQ",
+    "NSE:HDFCBANK-EQ",
+    "NSE:HDFCLIFE-EQ",
+    "NSE:HEROMOTOCO-EQ",
+    "NSE:HINDALCO-EQ",
+    "NSE:HINDUNILVR-EQ",
+    "NSE:ICICIBANK-EQ",
+    "NSE:INDUSINDBK-EQ",
+    "NSE:INFY-EQ",
+    "NSE:ITC-EQ",
+    "NSE:JSWSTEEL-EQ",
+    "NSE:KOTAKBANK-EQ",
+    "NSE:LT-EQ",
+    # "NSE:LTIM-EQ",       # FYERS returns 422 for this symbol
+    "NSE:M&M-EQ",
+    "NSE:MARUTI-EQ",
+    "NSE:NESTLEIND-EQ",
+    "NSE:NTPC-EQ",
+    "NSE:ONGC-EQ",
+    "NSE:POWERGRID-EQ",
+    "NSE:RELIANCE-EQ",
+    "NSE:SBILIFE-EQ",
+    "NSE:SBIN-EQ",
+    "NSE:SHRIRAMFIN-EQ",
+    "NSE:SUNPHARMA-EQ",
+    "NSE:TATACONSUM-EQ",
+    # "NSE:TATAMOTORS-EQ",  # FYERS returns 422 (possibly post-demerger symbol change)
+    "NSE:TATASTEEL-EQ",
+    "NSE:TCS-EQ",
+    "NSE:TECHM-EQ",
+    "NSE:TITAN-EQ",
+    "NSE:TRENT-EQ",
+    "NSE:ULTRACEMCO-EQ",
+    "NSE:WIPRO-EQ",
+]
+
+# MCX commodity futures — update expiries as contracts roll
+MCX_COMMODITIES = [
+    "MCX:GOLD26JUNFUT",
+    "MCX:SILVER26MAYFUT",
+    "MCX:CRUDEOIL26MAYFUT",
+    "MCX:NATURALGAS26MAYFUT",
+    "MCX:COPPER26JUNFUT",
+]
+
+NIFTY_INDICES = [
+    "NSE:NIFTY50-INDEX",
+    "NSE:NIFTYBANK-INDEX",
+    "NSE:FINNIFTY-INDEX",
+]

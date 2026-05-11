@@ -7,6 +7,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 import numpy as np
 
+
+def _sanitize(obj):
+    """Recursively convert numpy types to native Python types for JSON serialization."""
+    if isinstance(obj, dict):
+        return {k: _sanitize(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_sanitize(i) for i in obj]
+    if isinstance(obj, (np.bool_, np.generic)):
+        return obj.item()
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    return obj
+
 from app.database import get_db
 from app.config import settings
 from app.engines.data_engine import data_engine
@@ -20,6 +33,7 @@ from app.engines.uncertainty_engine import uncertainty_engine
 from app.engines.risk_engine import risk_engine
 from app.engines.learning_engine import learning_engine
 from app.engines.meta_engine import meta_engine
+from app.engines.alerts import maybe_alert
 from app.models.regime_states import RegimeState
 
 router = APIRouter()
@@ -164,7 +178,7 @@ async def run_full_analysis(
     db.add(regime_state)
 
     # Build response
-    return {
+    response = _sanitize({
         "symbol": sym,
         "timeframe": timeframe,
         "timestamp": datetime.utcnow().isoformat(),
@@ -251,7 +265,24 @@ async def run_full_analysis(
             "recommended_actions": meta.recommended_actions,
         },
         "weights": weight_map,
-    }
+    })
+
+    # Fire-and-forget alert if the decision is actionable.
+    # Done after _sanitize so the payload sent matches what the API returns.
+    try:
+        await maybe_alert({
+            "symbol": response["symbol"],
+            "timeframe": response["timeframe"],
+            "current_price": response["current_price"],
+            "decision": response["decision"],
+            "context": response["context"],
+        })
+    except Exception as e:
+        # Never let an alert failure break the analysis response.
+        import logging
+        logging.getLogger(__name__).warning(f"Alert dispatch failed: {e}")
+
+    return response
 
 
 @router.get("/context")

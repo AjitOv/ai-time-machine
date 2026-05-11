@@ -47,7 +47,7 @@ class ContextEngine:
 
         phase = self._detect_phase(df)
         regime = self._classify_regime(df, phase)
-        htf_bias = self._compute_htf_bias(htf_df or df)
+        htf_bias = self._compute_htf_bias(htf_df if htf_df is not None else df)
         equilibrium = self._compute_equilibrium(df)
         zone = self._compute_zone(df, equilibrium)
         context_score = self._compute_score(phase, regime, htf_bias, zone, df)
@@ -136,7 +136,10 @@ class ContextEngine:
     # ──────────────────────────────────────────────
 
     def _compute_htf_bias(self, df: pd.DataFrame) -> str:
-        """Determine directional bias from EMA 50 slope."""
+        """Determine directional bias from EMA 50 slope, with regime-transition
+        guards to avoid the lagging-indicator trap. (E.g. April 2020: EMA50 still
+        bearish from the COVID crash while price had already rallied 30%; the old
+        logic kept firing SELLs and got every one stopped out.)"""
         if "ema_50" not in df or len(df) < 10:
             return "NEUTRAL"
 
@@ -146,6 +149,31 @@ class ContextEngine:
 
         price = df["close"].values[-1]
         above_ema = price > ema_50[-1]
+
+        # Guard 1: fast/slow EMA disagreement → regime transition → no side.
+        if "ema_11" in df:
+            ema_11 = df["ema_11"].values
+            if len(ema_11) >= 6 and ema_11[-5] != 0:
+                fast_slope = (ema_11[-1] - ema_11[-5]) / ema_11[-5]
+                slow_bullish = recent_slope > 0.002
+                slow_bearish = recent_slope < -0.002
+                fast_bullish = fast_slope > 0.001
+                fast_bearish = fast_slope < -0.001
+                if (slow_bullish and fast_bearish) or (slow_bearish and fast_bullish):
+                    return "NEUTRAL"
+
+        # Guard 2: strong recent counter-momentum invalidates the slow verdict.
+        # If EMA50 says BEARISH but price has rallied >3% in the last 5 bars,
+        # we're past the turn. (Symmetric for the bullish-then-selloff case.)
+        if len(df) >= 6:
+            recent_close = float(df["close"].iloc[-1])
+            prior_close = float(df["close"].iloc[-6])
+            if prior_close != 0:
+                five_bar_return = (recent_close - prior_close) / prior_close
+                if recent_slope < -0.002 and five_bar_return > 0.03:
+                    return "NEUTRAL"
+                if recent_slope > 0.002 and five_bar_return < -0.03:
+                    return "NEUTRAL"
 
         if recent_slope > 0.002 and above_ema:
             return "BULLISH"

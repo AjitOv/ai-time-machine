@@ -18,6 +18,17 @@ data/
 *.db
 *.sqlite3
 
+# Large historical datasets (not for git — too big, deploy via S3/GCS or persistent disk)
+nse 15 min/
+nse data/
+*.csv
+
+# But DO ship the marketing static assets even if they were named .csv
+!frontend/marketing/*
+
+# Node / build artifacts
+test-nse.js
+
 # Environment files
 .env
 .env.local

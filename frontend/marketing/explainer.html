@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>AI Time Machine — 90-second demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#06060c; --text:#f0f1f7; --muted:#8a8da3;
+  --accent:#7cf; --accent-2:#a78bfa; --accent-3:#f472b6;
+  --grad:linear-gradient(120deg,#7cf 0%,#a78bfa 50%,#f472b6 100%);
+  --panel:#10101c; --line:rgba(255,255,255,0.08);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;overflow:hidden;height:100%;}
+.stage{position:fixed;inset:0;display:grid;place-items:center;}
+.scene{
+  position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  text-align:center;
+  opacity:0; pointer-events:none;
+  transition:opacity .7s ease;
+  padding:6vh 8vw;
+}
+.scene.active{opacity:1;pointer-events:auto;}
+.scene .inner{max-width:1200px;width:100%;}
+h1.t{font-size:clamp(38px,6.6vw,90px);line-height:1.04;letter-spacing:-0.025em;font-weight:800;margin:0 0 22px;}
+h2.t{font-size:clamp(28px,4.4vw,58px);line-height:1.1;letter-spacing:-0.02em;font-weight:800;margin:0 0 18px;}
+p.t{font-size:clamp(16px,1.8vw,22px);color:var(--muted);max-width:820px;margin:0 auto;line-height:1.55;}
+.grad{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;}
+
+/* shared bg */
+.bg-orbs{position:fixed;inset:0;pointer-events:none;z-index:0;}
+.orb{position:absolute;border-radius:50%;filter:blur(120px);opacity:.45;}
+.orb.a{top:-100px;left:-100px;width:560px;height:560px;background:radial-gradient(circle,#7cf,transparent 70%);}
+.orb.b{bottom:-160px;right:-120px;width:640px;height:640px;background:radial-gradient(circle,#a78bfa,transparent 70%);}
+.grid-fade{position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:linear-gradient(rgba(255,255,255,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.04) 1px,transparent 1px);
+  background-size:60px 60px;
+  mask-image:radial-gradient(ellipse at 50% 50%, #000 0%, transparent 70%);
+  -webkit-mask-image:radial-gradient(ellipse at 50% 50%, #000 0%, transparent 70%);
+}
+.scene .inner{position:relative;z-index:1;}
+
+/* SCENE 2: vs */
+.vs-grid{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:40px;}
+.vs-col{padding:28px;border-radius:18px;border:1px solid var(--line);background:var(--panel);text-align:left;}
+.vs-col.them{opacity:.7;}
+.vs-col.us{background:linear-gradient(180deg,rgba(167,139,250,.1),rgba(124,210,255,.04));border-color:rgba(167,139,250,.3);}
+.vs-col h3{margin:0 0 12px;font-size:14px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);}
+.vs-col.us h3{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;}
+.vs-col ul{margin:0;padding:0;list-style:none;}
+.vs-col ul li{padding:8px 0;font-size:16px;border-bottom:1px dashed var(--line);}
+.vs-col ul li:last-child{border-bottom:0;}
+.vs-col.them li::before{content:"—";color:#f87171;margin-right:10px;}
+.vs-col.us li::before{content:"✓";color:#34d399;margin-right:10px;}
+
+/* SCENE 3: 11 engines wheel */
+.wheel{position:relative;width:min(78vmin,720px);height:min(78vmin,720px);margin:30px auto 0;}
+.wheel-core{
+  position:absolute;inset:0;margin:auto;
+  width:34%;height:34%;
+  border-radius:50%;
+  background:radial-gradient(circle, rgba(167,139,250,.4), rgba(124,210,255,.2) 55%, transparent 75%);
+  border:1px solid rgba(167,139,250,.3);
+  display:grid;place-items:center;
+  font-weight:800;font-size:clamp(14px,1.8vw,20px);text-align:center;line-height:1.2;
+}
+.spoke{
+  position:absolute;left:50%;top:50%;
+  width:30%;
+  transform-origin:left center;
+  display:flex;align-items:center;
+  pointer-events:none;
+}
+.spoke::before{
+  content:"";flex:1;height:1px;
+  background:linear-gradient(90deg, rgba(167,139,250,.4), rgba(255,255,255,.05));
+  margin-right:8px;
+}
+.engine-pill{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:999px;
+  padding:8px 14px;
+  font-size:clamp(11px,1.2vw,14px);
+  font-weight:600;
+  white-space:nowrap;
+  transform-origin:left center;
+  opacity:0;
+  animation:pop .55s cubic-bezier(.2,.8,.3,1.2) forwards;
+}
+.engine-pill .num{font-family:'JetBrains Mono',monospace;color:var(--accent-2);font-size:10px;margin-right:6px;}
+@keyframes pop{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:scale(1)}}
+
+/* SCENE 4: pipeline flow */
+.pipe-flow{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:36px;}
+.pf-step{
+  padding:14px 18px;border:1px solid var(--line);border-radius:12px;
+  background:rgba(255,255,255,.025);
+  display:flex;align-items:center;gap:10px;
+  opacity:0;transform:translateY(8px);
+  animation:slideUp .45s ease forwards;
+}
+.pf-step .pd{
+  width:30px;height:30px;border-radius:8px;
+  background:var(--grad);color:#0a0a14;
+  display:grid;place-items:center;font-family:'JetBrains Mono',monospace;font-weight:800;font-size:11px;
+}
+.pf-step strong{display:block;font-size:14px;}
+.pf-step span{display:block;font-size:11px;color:var(--muted);margin-top:2px;}
+.pf-arr{color:#5a5d72;font-size:18px;align-self:center;opacity:0;animation:slideUp .45s ease forwards;}
+@keyframes slideUp{to{opacity:1;transform:none}}
+
+/* SCENE 5: Monte Carlo viz */
+.mc-wrap{margin-top:30px;display:grid;place-items:center;}
+.mc-chart{position:relative;width:min(90vw,860px);height:min(50vh,360px);background:rgba(255,255,255,.02);border:1px solid var(--line);border-radius:14px;overflow:hidden;}
+.mc-chart svg{width:100%;height:100%;display:block;}
+.mc-line{fill:none;stroke-width:1.4;opacity:.55;stroke-linejoin:round;}
+.mc-mean{stroke:#f472b6;stroke-width:2.4;fill:none;opacity:1;}
+.mc-band{fill:url(#bandg);opacity:.35;}
+.mc-axis{stroke:rgba(255,255,255,.1);stroke-width:1;}
+.mc-label{position:absolute;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);}
+.mc-label.tl{top:10px;left:14px;}
+.mc-label.tr{top:10px;right:14px;color:var(--accent-3);}
+.mc-label.br{bottom:10px;right:14px;}
+
+/* SCENE 6: decision card */
+.dec-wrap{margin-top:30px;display:grid;place-items:center;}
+.dec-card{
+  width:min(560px,90vw);
+  background:linear-gradient(180deg,rgba(52,211,153,.08),transparent 80%),var(--panel);
+  border:1px solid rgba(52,211,153,.4);
+  border-radius:18px;padding:28px;
+  text-align:left;
+  box-shadow:0 30px 80px -30px rgba(52,211,153,.4);
+}
+.dec-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;}
+.dec-pill{background:#34d399;color:#072719;padding:6px 12px;border-radius:8px;font-weight:800;font-size:12px;letter-spacing:.08em;}
+.dec-row{display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:14px;padding:8px 0;border-bottom:1px dashed var(--line);}
+.dec-row:last-of-type{border:0;}
+.dec-row span:first-child{color:var(--muted);}
+.dec-gates{display:flex;gap:6px;margin-top:14px;flex-wrap:wrap;}
+.gate{padding:6px 10px;border-radius:8px;background:rgba(52,211,153,.12);color:#34d399;font-size:11px;font-family:'JetBrains Mono',monospace;}
+
+/* SCENE 7: numbers */
+.num-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:36px;}
+.num-cell{padding:24px 18px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.02);}
+.num-cell .k{font-family:'JetBrains Mono',monospace;font-size:clamp(20px,2.6vw,32px);font-weight:700;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;}
+.num-cell .v{font-size:12px;color:var(--muted);margin-top:4px;}
+
+/* SCENE 8: closer CTA */
+.cta-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:34px;}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:14px 24px;border-radius:12px;font-weight:600;font-size:15px;border:1px solid transparent;cursor:pointer;}
+.btn.primary{background:var(--grad);color:#0a0a14;}
+.btn.ghost{background:rgba(255,255,255,.04);color:var(--text);border-color:var(--line);}
+
+/* HUD */
+.hud{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  display:flex;align-items:center;gap:14px;
+  background:rgba(255,255,255,.04);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border:1px solid var(--line);border-radius:999px;padding:8px 14px;font-size:13px;z-index:99;}
+.hud button{background:transparent;border:0;color:var(--text);cursor:pointer;font-size:14px;padding:4px 8px;border-radius:6px;}
+.hud button:hover{background:rgba(255,255,255,.06);}
+.hud .progress{width:240px;height:4px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden;}
+.hud .progress > div{height:100%;width:0;background:var(--grad);transition:width .25s linear;}
+.hud .scene-label{color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.05em;}
+
+a.exit{position:fixed;top:18px;left:18px;color:var(--muted);font-size:13px;text-decoration:none;z-index:99;}
+a.exit:hover{color:var(--text);}
+
+@media (max-width:760px){
+  .vs-grid{grid-template-columns:1fr;}
+  .num-grid{grid-template-columns:1fr 1fr;}
+  .pf-step{min-width:0;}
+  .pf-arr{display:none;}
+}
+</style>
+</head>
+<body>
+
+<div class="bg-orbs"><div class="orb a"></div><div class="orb b"></div></div>
+<div class="grid-fade"></div>
+<a class="exit" href="index.html">← back to landing</a>
+
+<div class="stage" id="stage">
+
+  <!-- 1: HERO -->
+  <section class="scene" data-dur="6500">
+    <div class="inner">
+      <h1 class="t">Don't predict the market.<br/><span class="grad">Reveal its probable futures.</span></h1>
+      <p class="t">A 90-second tour of the AI Time Machine.</p>
+    </div>
+  </section>
+
+  <!-- 2: VS -->
+  <section class="scene" data-dur="9000">
+    <div class="inner">
+      <h2 class="t">Most "AI trading" is <span class="grad">a single black box.</span></h2>
+      <p class="t">Time Machine is eleven minds, voting.</p>
+      <div class="vs-grid">
+        <div class="vs-col them">
+          <h3>Typical AI bot</h3>
+          <ul>
+            <li>One opaque model</li>
+            <li>Static weights, frozen at training</li>
+            <li>No memory of past setups</li>
+            <li>No regime awareness</li>
+            <li>No risk circuit breakers</li>
+          </ul>
+        </div>
+        <div class="vs-col us">
+          <h3>AI Time Machine</h3>
+          <ul>
+            <li>11 specialised, transparent engines</li>
+            <li>Weights adapt after every trade</li>
+            <li>Cosine-similarity pattern recall</li>
+            <li>Meta-engine flags drift &amp; overfitting</li>
+            <li>2% daily cap · 3-loss kill-switch</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3: 11 ENGINES WHEEL -->
+  <section class="scene" data-dur="11000">
+    <div class="inner">
+      <h2 class="t">Eleven engines. <span class="grad">One decision.</span></h2>
+      <div class="wheel" id="wheel">
+        <div class="wheel-core">11<br/>cooperating<br/>engines</div>
+        <!-- spokes injected by JS -->
+      </div>
+    </div>
+  </section>
+
+  <!-- 4: PIPELINE -->
+  <section class="scene" data-dur="9000">
+    <div class="inner">
+      <h2 class="t">From candle to <span class="grad">decision in one pass.</span></h2>
+      <div class="pipe-flow" id="pipeflow"></div>
+    </div>
+  </section>
+
+  <!-- 5: MONTE CARLO -->
+  <section class="scene" data-dur="9500">
+    <div class="inner">
+      <h2 class="t">100 paths × 50 steps. <span class="grad">A probability cloud.</span></h2>
+      <p class="t">Geometric Brownian Motion biased by DNA direction and regime volatility.</p>
+      <div class="mc-wrap">
+        <div class="mc-chart">
+          <svg id="mc" viewBox="0 0 860 360" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="bandg" x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0%" stop-color="#a78bfa" stop-opacity=".5"/>
+                <stop offset="100%" stop-color="#7cf" stop-opacity=".05"/>
+              </linearGradient>
+            </defs>
+          </svg>
+          <div class="mc-label tl">simulated paths · 100</div>
+          <div class="mc-label tr">95th percentile · target</div>
+          <div class="mc-label br">5th percentile · stop</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6: DECISION -->
+  <section class="scene" data-dur="9000">
+    <div class="inner">
+      <h2 class="t">Five gates. <span class="grad">Any failure → no trade.</span></h2>
+      <div class="dec-wrap">
+        <div class="dec-card">
+          <div class="dec-head">
+            <div>
+              <div style="font-family:'JetBrains Mono',monospace;color:var(--muted);font-size:12px;">NSE:NIFTY50-INDEX · 1h</div>
+              <div style="font-size:22px;font-weight:800;margin-top:4px;">Decision</div>
+            </div>
+            <div class="dec-pill">BUY</div>
+          </div>
+          <div class="dec-row"><span>Final score</span><span>+0.42</span></div>
+          <div class="dec-row"><span>DNA confidence</span><span>0.78</span></div>
+          <div class="dec-row"><span>Sim probability</span><span>67%</span></div>
+          <div class="dec-row"><span>Uncertainty</span><span>0.21</span></div>
+          <div class="dec-row"><span>Entry · Stop · Target</span><span>24,017 · 23,890 · 24,260</span></div>
+          <div class="dec-row"><span>Risk : Reward</span><span>1 : 2.4</span></div>
+          <div class="dec-gates">
+            <div class="gate">✓ context</div>
+            <div class="gate">✓ DNA &gt; 0.6</div>
+            <div class="gate">✓ sim &gt; 60%</div>
+            <div class="gate">✓ unc &lt; 0.4</div>
+            <div class="gate">✓ score</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7: NUMBERS -->
+  <section class="scene" data-dur="8000">
+    <div class="inner">
+      <h2 class="t">The numbers <span class="grad">that make it real.</span></h2>
+      <div class="num-grid">
+        <div class="num-cell"><div class="k">100 × 50</div><div class="v">Monte Carlo paths × steps</div></div>
+        <div class="num-cell"><div class="k">7-D</div><div class="v">DNA feature vectors</div></div>
+        <div class="num-cell"><div class="k">5</div><div class="v">Timeframes fused</div></div>
+        <div class="num-cell"><div class="k">5</div><div class="v">Decision gates</div></div>
+        <div class="num-cell"><div class="k">2 : 1</div><div class="v">Min reward-to-risk</div></div>
+        <div class="num-cell"><div class="k">1.5×</div><div class="v">ATR stop-loss</div></div>
+        <div class="num-cell"><div class="k">2 %</div><div class="v">Daily-risk ceiling</div></div>
+        <div class="num-cell"><div class="k">0.01</div><div class="v">Online learning rate</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8: CTA -->
+  <section class="scene" data-dur="9000">
+    <div class="inner">
+      <h2 class="t">The market is a probability cloud.<br/><span class="grad">Time Machine maps it.</span></h2>
+      <p class="t">Self-evolving. Auditable. Yours to run.</p>
+      <div class="cta-row">
+        <a class="btn primary" href="../index.html">Launch the system →</a>
+        <a class="btn ghost" href="index.html">Read the full breakdown</a>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!-- HUD -->
+<div class="hud">
+  <button id="prev" title="previous">⏮</button>
+  <button id="play" title="play/pause">⏸</button>
+  <button id="next" title="next">⏭</button>
+  <div class="progress"><div id="bar"></div></div>
+  <div class="scene-label" id="lbl">01 / 08</div>
+</div>
+
+<script>
+(function(){
+  // ── Inject the 11-engine wheel
+  const ENGINES = [
+    "Data","Context","Behavior","DNA","Simulation",
+    "Scenario","Decision","Uncertainty","Risk","Learning","Meta"
+  ];
+  const wheel = document.getElementById('wheel');
+  const radius = 50; // % units
+  ENGINES.forEach((name, i) => {
+    const angle = (i / ENGINES.length) * 360 - 90;
+    const spoke = document.createElement('div');
+    spoke.className = 'spoke';
+    spoke.style.transform = `rotate(${angle}deg)`;
+    spoke.style.animationDelay = (i * 110) + 'ms';
+    const pill = document.createElement('div');
+    pill.className = 'engine-pill';
+    pill.innerHTML = `<span class="num">${String(i+1).padStart(2,'0')}</span>${name}`;
+    pill.style.transform = `rotate(${-angle}deg)`;
+    pill.style.animationDelay = (300 + i * 160) + 'ms';
+    spoke.appendChild(pill);
+    wheel.appendChild(spoke);
+  });
+
+  // ── Inject the pipeline flow
+  const STEPS = [
+    ["01","Ingest","5 timeframes"],
+    ["02","Gatekeep","Context filters chaos"],
+    ["03","Read","Behavior detects intent"],
+    ["04","Recall","DNA finds analogues"],
+    ["05","Simulate","100 × 50 Monte Carlo"],
+    ["06","Decide","5 gates · BUY/SELL/NO_TRADE"],
+    ["07","Adapt","Reward · weights rebalance"],
+  ];
+  const pf = document.getElementById('pipeflow');
+  STEPS.forEach((s, i) => {
+    const st = document.createElement('div');
+    st.className = 'pf-step';
+    st.style.animationDelay = (i * 240) + 'ms';
+    st.innerHTML = `<div class="pd">${s[0]}</div><div><strong>${s[1]}</strong><span>${s[2]}</span></div>`;
+    pf.appendChild(st);
+    if (i < STEPS.length - 1) {
+      const arr = document.createElement('div');
+      arr.className = 'pf-arr';
+      arr.textContent = '→';
+      arr.style.animationDelay = ((i + 0.5) * 240) + 'ms';
+      pf.appendChild(arr);
+    }
+  });
+
+  // ── Build the Monte Carlo SVG
+  function buildMC() {
+    const svg = document.getElementById('mc');
+    svg.innerHTML = svg.querySelector('defs').outerHTML; // keep gradient
+    const W = 860, H = 360, N = 50, PATHS = 60;
+    const startY = H * 0.62, startX = 20;
+    const dx = (W - 40) / N;
+
+    // axis baseline
+    const axis = document.createElementNS('http://www.w3.org/2000/svg','line');
+    axis.setAttribute('x1', 0); axis.setAttribute('x2', W);
+    axis.setAttribute('y1', startY); axis.setAttribute('y2', startY);
+    axis.setAttribute('class','mc-axis');
+    svg.appendChild(axis);
+
+    // generate paths (correlated random walks with upward drift)
+    const allY = [];
+    for (let p = 0; p < PATHS; p++) {
+      let y = startY;
+      const drift = -0.45 - Math.random() * 0.4; // upward bias (smaller y = higher price)
+      const path = [`M ${startX} ${y.toFixed(1)}`];
+      const ys = [y];
+      for (let i = 1; i <= N; i++) {
+        y += drift + (Math.random() - 0.5) * 8;
+        ys.push(y);
+        path.push(`L ${(startX + i * dx).toFixed(1)} ${y.toFixed(1)}`);
+      }
+      allY.push(ys);
+      const el = document.createElementNS('http://www.w3.org/2000/svg','path');
+      el.setAttribute('d', path.join(' '));
+      el.setAttribute('class','mc-line');
+      const hue = 200 + Math.random() * 80;
+      el.setAttribute('stroke', `hsla(${hue},80%,72%,.5)`);
+      el.style.strokeDasharray = 1500;
+      el.style.strokeDashoffset = 1500;
+      el.style.transition = `stroke-dashoffset 1.6s ease ${p * 22}ms`;
+      svg.appendChild(el);
+      requestAnimationFrame(() => { el.style.strokeDashoffset = 0; });
+    }
+
+    // mean band (5th–95th percentile)
+    const band = document.createElementNS('http://www.w3.org/2000/svg','path');
+    const top = [`M ${startX} ${startY}`];
+    const bot = [];
+    const mean = [`M ${startX} ${startY}`];
+    for (let i = 0; i <= N; i++) {
+      const col = allY.map(arr => arr[i]).sort((a,b) => a - b);
+      const p05 = col[Math.floor(col.length * 0.95)]; // larger y = lower price (5th pct of price)
+      const p95 = col[Math.floor(col.length * 0.05)];
+      const mid = col[Math.floor(col.length * 0.5)];
+      top.push(`L ${(startX + i*dx).toFixed(1)} ${p95.toFixed(1)}`);
+      bot.unshift(`L ${(startX + i*dx).toFixed(1)} ${p05.toFixed(1)}`);
+      mean.push(`L ${(startX + i*dx).toFixed(1)} ${mid.toFixed(1)}`);
+    }
+    band.setAttribute('d', top.concat(bot, ['Z']).join(' '));
+    band.setAttribute('class','mc-band');
+    band.style.opacity = 0;
+    band.style.transition = 'opacity 1s ease 1.2s';
+    svg.appendChild(band);
+
+    const meanEl = document.createElementNS('http://www.w3.org/2000/svg','path');
+    meanEl.setAttribute('d', mean.join(' '));
+    meanEl.setAttribute('class','mc-mean');
+    meanEl.style.strokeDasharray = 2000;
+    meanEl.style.strokeDashoffset = 2000;
+    meanEl.style.transition = 'stroke-dashoffset 1.8s ease .3s';
+    svg.appendChild(meanEl);
+    requestAnimationFrame(() => {
+      band.style.opacity = 1;
+      meanEl.style.strokeDashoffset = 0;
+    });
+  }
+
+  // ── Scene player
+  const scenes = Array.from(document.querySelectorAll('.scene'));
+  const lbl = document.getElementById('lbl');
+  const bar = document.getElementById('bar');
+  let idx = 0, t0 = 0, raf = 0, paused = false;
+
+  function showScene(i){
+    scenes.forEach((s, n) => s.classList.toggle('active', n === i));
+    lbl.textContent = String(i+1).padStart(2,'0') + ' / ' + String(scenes.length).padStart(2,'0');
+    if (scenes[i].querySelector('.mc-chart')) buildMC();
+    if (i === 2) {
+      // re-trigger wheel pop
+      wheel.querySelectorAll('.engine-pill').forEach((p, k) => {
+        p.style.animation = 'none'; p.offsetHeight;
+        p.style.animation = '';
+      });
+    }
+  }
+
+  function tick(t){
+    if (paused) return;
+    if (!t0) t0 = t;
+    const elapsed = t - t0;
+    const dur = parseInt(scenes[idx].dataset.dur, 10);
+    bar.style.width = Math.min(100, (elapsed / dur) * 100) + '%';
+    if (elapsed >= dur) {
+      idx = (idx + 1) % scenes.length;
+      t0 = t;
+      showScene(idx);
+    }
+    raf = requestAnimationFrame(tick);
+  }
+
+  function play(){ paused = false; document.getElementById('play').textContent = '⏸'; t0 = 0; cancelAnimationFrame(raf); raf = requestAnimationFrame(tick); }
+  function pause(){ paused = true; document.getElementById('play').textContent = '▶'; cancelAnimationFrame(raf); }
+  document.getElementById('play').addEventListener('click', () => paused ? play() : pause());
+  document.getElementById('next').addEventListener('click', () => { idx = (idx+1) % scenes.length; showScene(idx); t0 = 0; });
+  document.getElementById('prev').addEventListener('click', () => { idx = (idx-1+scenes.length) % scenes.length; showScene(idx); t0 = 0; });
+  document.addEventListener('keydown', e => {
+    if (e.key === ' ') { e.preventDefault(); paused ? play() : pause(); }
+    if (e.key === 'ArrowRight') document.getElementById('next').click();
+    if (e.key === 'ArrowLeft') document.getElementById('prev').click();
+  });
+
+  showScene(0);
+  play();
+})();
+</script>
+</body>
+</html>
