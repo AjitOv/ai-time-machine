@@ -25,6 +25,51 @@ logging.basicConfig(
 logger = logging.getLogger("timemachine")
 
 
+async def _hydrate_from_bundle():
+    """Load the bundled daily+1h CSVs into the data_engine cache.
+
+    The bundle lives at `backend/historical_data/` and ships in the git repo
+    so Render has historical data even without persistent disk. Filenames
+    follow the source convention `<NAME>_<suffix>.csv` (e.g. `NIFTY 50_day.csv`,
+    `INDIA VIX_60minute.csv`) — same parser the manual import endpoint uses.
+    """
+    import time as _time
+    from pathlib import Path
+    from app.engines.data_engine import data_engine
+    from app.engines.data_importer import import_file
+    from app.api.v1.data import _parse_15min_filename, _PIN_TTL_SECONDS
+
+    bundle_dir = Path(__file__).resolve().parents[1] / "historical_data"
+    if not bundle_dir.exists():
+        logger.info(f"No bundled historical data found at {bundle_dir} (skipping)")
+        return
+
+    csvs = sorted([p for p in bundle_dir.iterdir() if p.suffix.lower() == ".csv"])
+    if not csvs:
+        logger.info(f"Bundle dir empty at {bundle_dir} (skipping)")
+        return
+
+    loaded = 0
+    skipped = 0
+    errors = 0
+    for fp in csvs:
+        try:
+            derived = _parse_15min_filename(fp.name)
+            if not derived:
+                skipped += 1
+                continue
+            symbol, tf = derived
+            df, _ = import_file(fp, tf)
+            cache_key = f"{symbol}_{tf}"
+            data_engine._cache[cache_key] = df
+            data_engine._cache_ts[cache_key] = _time.time() + _PIN_TTL_SECONDS
+            loaded += 1
+        except Exception as e:
+            errors += 1
+            logger.debug(f"bundle load {fp.name}: {e}")
+    logger.info(f"Bundled history hydrated: {loaded} frames loaded, {skipped} skipped, {errors} errors")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application startup and shutdown events."""
@@ -38,15 +83,29 @@ async def lifespan(app: FastAPI):
     await init_db()
     logger.info("Database initialized")
 
-    # Pre-fetch data for default symbol
-    from app.engines.data_engine import data_engine
-    logger.info(f"Pre-fetching data for {settings.DEFAULT_SYMBOL}...")
+    # ── Hydrate cache from the bundled historical archive (daily + 1h) ──
+    # On Render this is the only place historical data lives — the raw 1.2GB
+    # NSE folder doesn't ship with the repo. Backtest needs this to work.
     try:
-        data_engine.fetch_historical(settings.DEFAULT_SYMBOL, "1h")
-        data_engine.fetch_historical(settings.DEFAULT_SYMBOL, "4h")
-        logger.info("Data pre-fetch complete")
+        await _hydrate_from_bundle()
     except Exception as e:
-        logger.warning(f"Data pre-fetch failed (non-fatal): {e}")
+        logger.warning(f"Historical bundle hydration failed (non-fatal): {e}")
+
+    # Pre-fetch live data for default symbol — only if not already cached.
+    # If the bundle already loaded NIFTY 50 history, we skip this to avoid
+    # overwriting the historical frame with a tiny live one.
+    from app.engines.data_engine import data_engine
+    cache_key = f"{settings.DEFAULT_SYMBOL}_1h"
+    if cache_key not in data_engine._cache or data_engine._cache[cache_key].empty:
+        logger.info(f"Pre-fetching live data for {settings.DEFAULT_SYMBOL}...")
+        try:
+            data_engine.fetch_historical(settings.DEFAULT_SYMBOL, "1h")
+            data_engine.fetch_historical(settings.DEFAULT_SYMBOL, "4h")
+            logger.info("Data pre-fetch complete")
+        except Exception as e:
+            logger.warning(f"Data pre-fetch failed (non-fatal): {e}")
+    else:
+        logger.info(f"Using bundled historical for {settings.DEFAULT_SYMBOL} 1h (live fetch skipped)")
 
     # Auto-start the paper-trading loop if enabled in settings
     if settings.PAPER_LOOP_ENABLED:

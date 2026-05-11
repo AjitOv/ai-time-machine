@@ -190,6 +190,46 @@ async def import_preset(
     }
 
 
+@router.post("/import-historical")
+async def import_historical_bundle():
+    """Re-hydrate the cache from `backend/historical_data/` (daily + 1h CSVs).
+
+    Useful after a Render restart or to force-refresh from the bundled
+    archive without redeploying. Same logic as the startup hook but callable
+    over HTTP."""
+    from pathlib import Path
+    bundle_dir = Path(__file__).resolve().parents[3] / "historical_data"
+    if not bundle_dir.exists():
+        return {"ok": False, "error": f"bundle dir not found: {bundle_dir}"}
+
+    csvs = sorted([p for p in bundle_dir.iterdir() if p.suffix.lower() == ".csv"])
+    loaded = []
+    errors = []
+    t0 = time.time()
+    for fp in csvs:
+        try:
+            derived = _parse_15min_filename(fp.name)
+            if not derived:
+                continue
+            symbol, tf = derived
+            df, _ = import_file(fp, tf)
+            cache_key = f"{symbol}_{tf}"
+            data_engine._cache[cache_key] = df
+            data_engine._cache_ts[cache_key] = time.time() + _PIN_TTL_SECONDS
+            loaded.append({"symbol": symbol, "timeframe": tf, "rows": len(df)})
+        except Exception as e:
+            errors.append({"file": fp.name, "error": f"{type(e).__name__}: {e}"})
+    return {
+        "ok": True,
+        "bundle_dir": str(bundle_dir),
+        "loaded_count": len(loaded),
+        "error_count": len(errors),
+        "runtime_ms": int((time.time() - t0) * 1000),
+        "loaded": loaded,
+        "errors": errors[:20],
+    }
+
+
 @router.get("/cache")
 async def list_cache():
     """List everything currently held in the in-memory candle cache."""

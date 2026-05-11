@@ -66,7 +66,7 @@ def _parse_timestamp(df: pd.DataFrame) -> pd.DataFrame:
             f"Columns seen: {list(df.columns)}; "
             f"expected one of {_COL_ALIASES['timestamp']}"
         )
-    df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce", infer_datetime_format=True)
+    df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
     bad = df["timestamp"].isna().sum()
     if bad:
         logger.warning(f"Importer: dropped {bad} rows with unparseable timestamps")
