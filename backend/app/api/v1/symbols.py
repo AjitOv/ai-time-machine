@@ -7,7 +7,7 @@ from typing import Dict, List, Optional
 
 from fastapi import APIRouter, Query
 
-from app.engines.dhan_client import INDEX_MAP
+from app.engines.dhan_client import INDEX_MAP, ensure_scrip_master, default_scrip_master_path
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -33,9 +33,11 @@ def _load_index():
     global _LOADED
     if _LOADED:
         return
-    path = Path(__file__).resolve().parents[4] / "data" / "dhan_scrip_master.csv"
-    if not path.exists():
-        logger.warning(f"Symbol master not found at {path}")
+    # Prefer the local-dev copy if present; otherwise canonical bundled path.
+    legacy = Path(__file__).resolve().parents[4] / "data" / "dhan_scrip_master.csv"
+    path = legacy if legacy.exists() else default_scrip_master_path()
+    if not path.exists() and not ensure_scrip_master(path):
+        logger.warning(f"Symbol master unavailable at {path} (search will return empty)")
         _LOADED = True
         return
 

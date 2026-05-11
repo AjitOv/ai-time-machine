@@ -77,7 +77,11 @@ class DataEngine:
     def _init_dhan(self) -> Optional[DhanClient]:
         if not (settings.DHAN_CLIENT_ID and settings.DHAN_ACCESS_TOKEN):
             return None
-        scrip_path = Path(__file__).resolve().parents[3] / "data" / "dhan_scrip_master.csv"
+        # Prefer the legacy local dev location if it exists; otherwise use the
+        # canonical bundled location (which DhanClient will auto-populate).
+        legacy = Path(__file__).resolve().parents[3] / "data" / "dhan_scrip_master.csv"
+        from app.engines.dhan_client import default_scrip_master_path
+        scrip_path = legacy if legacy.exists() else default_scrip_master_path()
         logger.info("Dhan client initialized.")
         return DhanClient(
             settings.DHAN_CLIENT_ID,

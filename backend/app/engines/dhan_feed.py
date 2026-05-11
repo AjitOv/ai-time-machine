@@ -95,7 +95,9 @@ class DhanFeedManager:
         if not (settings.DHAN_CLIENT_ID and settings.DHAN_ACCESS_TOKEN):
             return None
         from pathlib import Path
-        scrip_path = Path(__file__).resolve().parents[3] / "data" / "dhan_scrip_master.csv"
+        from app.engines.dhan_client import default_scrip_master_path
+        legacy = Path(__file__).resolve().parents[3] / "data" / "dhan_scrip_master.csv"
+        scrip_path = legacy if legacy.exists() else default_scrip_master_path()
         return DhanClient(
             settings.DHAN_CLIENT_ID,
             settings.DHAN_ACCESS_TOKEN,

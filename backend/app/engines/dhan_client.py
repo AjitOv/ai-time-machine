@@ -4,7 +4,7 @@ Dhan REST API v2 client.
 Fetches OHLCV via the public Dhan HTTP API. Maps our FYERS-style symbols
 (`NSE:TCS-EQ`, `NSE:NIFTY50-INDEX`, `MCX:GOLD26JUNFUT`) to Dhan's
 (security_id, exchange_segment, instrument) tuple via the official
-api-scrip-master CSV cached in `data/dhan_scrip_master.csv`.
+api-scrip-master CSV cached locally (auto-downloaded if missing).
 
 Docs: https://dhanhq.co/docs/v2/historical/
 """
@@ -19,6 +19,36 @@ import httpx
 import pandas as pd
 
 logger = logging.getLogger(__name__)
+
+# Dhan publishes the instrument master CSV publicly; we cache locally.
+SCRIP_MASTER_URL = "https://images.dhan.co/api-data/api-scrip-master.csv"
+
+
+def ensure_scrip_master(path: Path) -> bool:
+    """Download Dhan's public scrip master if it's missing or truncated.
+    Called from DhanClient.__init__ (REST), DhanFeedManager (live ticks),
+    and the /symbols/search route — so a fresh Render boot self-heals."""
+    if path.exists() and path.stat().st_size > 1_000_000:
+        return True
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        logger.info(f"Downloading Dhan scrip master to {path} ...")
+        with httpx.Client(timeout=60.0) as client:
+            r = client.get(SCRIP_MASTER_URL)
+            r.raise_for_status()
+            path.write_bytes(r.content)
+        logger.info(f"Scrip master saved: {path.stat().st_size:,} bytes")
+        return True
+    except Exception as e:
+        logger.warning(f"Could not fetch Dhan scrip master: {e}")
+        return False
+
+
+def default_scrip_master_path() -> Path:
+    """The canonical location for the scrip master CSV — under
+    backend/historical_data/ which always exists in the deploy bundle and
+    is writable on Render."""
+    return Path(__file__).resolve().parents[2] / "historical_data" / "dhan_scrip_master.csv"
 
 INTRADAY_URL = "https://api.dhan.co/v2/charts/intraday"
 HISTORICAL_URL = "https://api.dhan.co/v2/charts/historical"
@@ -85,6 +115,10 @@ class DhanClient:
         scrip_master_path: Path,
         timeout: float = 15.0,
     ):
+        # Self-heal: download the public scrip master CSV if absent. Render's
+        # fresh boot doesn't ship the file (gitignored), so this is what makes
+        # symbol resolution work in production.
+        ensure_scrip_master(scrip_master_path)
         self.client_id = client_id
         self.access_token = access_token
         self._scrip_master_path = scrip_master_path
